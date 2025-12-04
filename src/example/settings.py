@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django_htmx',
     'template_partials',
     'orange_sherbert',
+    'example',
 ]
 
 MIDDLEWARE = [
