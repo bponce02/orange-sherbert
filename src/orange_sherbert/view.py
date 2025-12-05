@@ -6,21 +6,69 @@ from django.views.generic import DeleteView
 from django.views import View
 from django.urls import path
 
+class _CRUDMixin:
+
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if hasattr(self, 'model') and self.model:
+            meta = self.model._meta
+            context.update({
+                'model_name': meta.model_name,
+                'verbose_name': meta.verbose_name,
+                'verbose_name_plural': meta.verbose_name_plural,
+            })
+        return context
+
+
 class CRUDView(View):
     model = None
-    template_name = None
+    fields = None
+    view_type = None
     
-    detail_view = DetailView
-    list_view = ListView
-    create_view = CreateView
-    update_view = UpdateView
-    delete_view = DeleteView
+    templates = {
+        'list': 'orange_sherbert/list.html',
+        'detail': 'orange_sherbert/detail.html',
+        'create': 'orange_sherbert/create.html',
+        'update': 'orange_sherbert/update.html',
+        'delete': 'orange_sherbert/delete.html',
+    }
     
-    detail_template = 'orange_sherbert/detail.html'
-    list_template = 'orange_sherbert/list.html'
-    create_template = 'orange_sherbert/create.html'
-    update_template = 'orange_sherbert/update.html'
-    delete_template = 'orange_sherbert/delete.html'
+    _base_view_classes = {
+        'list': ListView,
+        'detail': DetailView,
+        'create': CreateView,
+        'update': UpdateView,
+        'delete': DeleteView,
+    }
+    
+    @classmethod
+    def _get_view_classes(cls):
+        return {
+            view_type: type(
+                f'_CRUD{base_class.__name__}',
+                (_CRUDMixin, base_class),
+                {}
+            )
+            for view_type, base_class in cls._base_view_classes.items()
+        }
+    
+    def dispatch(self, request, *args, **kwargs):
+        view_type = getattr(self, 'view_type', 'list')
+        
+        view_classes = self._get_view_classes()
+        view_class = view_classes[view_type]
+        
+        view_kwargs = {
+            'model': self.model,
+            'template_name': self.templates[view_type]
+        }
+        
+        if view_type == 'create' or view_type == 'update':
+            view_kwargs['fields'] = self.fields
+        
+        view = view_class.as_view(**view_kwargs)
+        return view(request, *args, **kwargs)
     
     @classmethod
     def get_model_name(cls):
@@ -33,10 +81,9 @@ class CRUDView(View):
         model_name = cls.get_model_name()
         
         return [
-            path(f'{model_name}/', cls.list_view.as_view(model=cls.model, template_name=cls.list_template), name=f'{model_name}-list'),
-            path(f'{model_name}/create/', cls.create_view.as_view(model=cls.model, template_name=cls.create_template), name=f'{model_name}-create'),
-            path(f'{model_name}/<int:pk>/', cls.detail_view.as_view(model=cls.model, template_name=cls.detail_template), name=f'{model_name}-detail'),
-            path(f'{model_name}/<int:pk>/update/', cls.update_view.as_view(model=cls.model, template_name=cls.update_template), name=f'{model_name}-update'),
-            path(f'{model_name}/<int:pk>/delete/', cls.delete_view.as_view(model=cls.model, template_name=cls.delete_template), name=f'{model_name}-delete'),
+            path(f'{model_name}/', cls.as_view(view_type='list'), name=f'{model_name}-list'),
+            path(f'{model_name}/create/', cls.as_view(view_type='create'), name=f'{model_name}-create'),
+            path(f'{model_name}/<int:pk>/', cls.as_view(view_type='detail'), name=f'{model_name}-detail'),
+            path(f'{model_name}/<int:pk>/update/', cls.as_view(view_type='update'), name=f'{model_name}-update'),
+            path(f'{model_name}/<int:pk>/delete/', cls.as_view(view_type='delete'), name=f'{model_name}-delete'),
         ]
-

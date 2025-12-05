@@ -4,7 +4,7 @@
 
 {% block content %}
 <h1>{{ object }}</h1>
-<a href="{% url model._meta.model_name|add:'-list' %}">Back to List</a>
-<a href="{% url model._meta.model_name|add:'-update' object.pk %}">Edit</a>
-<a href="{% url model._meta.model_name|add:'-delete' object.pk %}">Delete</a>
+<a href="{% url model_name|add:'-list' %}">Back to List</a>
+<a href="{% url model_name|add:'-update' object.pk %}">Edit</a>
+<a href="{% url model_name|add:'-delete' object.pk %}">Delete</a>
 {% endblock %}

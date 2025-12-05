@@ -8,6 +8,6 @@
     {% csrf_token %}
     {{ form.as_p }}
     <button type="submit">Update</button>
-    <a href="{% url model._meta.model_name|add:'-detail' object.pk %}">Cancel</a>
+    <a href="{% url model_name|add:'-detail' object.pk %}">Cancel</a>
 </form>
 {% endblock %}

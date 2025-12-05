@@ -1,14 +1,14 @@
 {% extends "orange_sherbert/base.html" %}
 
-{% block title %}{{ model._meta.verbose_name_plural }}{% endblock %}
+{% block title %}{{ verbose_name_plural }}{% endblock %}
 
 {% block content %}
-<h1>{{ model._meta.verbose_name_plural }}</h1>
-<a href="{% url model._meta.model_name|add:'-create' %}">Create New</a>
+<h1>{{ verbose_name_plural }}</h1>
+<a href="{% url model_name|add:'-create' %}">Create New</a>
 <ul>
     {% for object in object_list %}
     <li>
-        <a href="{% url model._meta.model_name|add:'-detail' object.pk %}">{{ object }}</a>
+        <a href="{% url model_name|add:'-detail' object.pk %}">{{ object }}</a>
     </li>
     {% empty %}
     <li>No items found.</li>
