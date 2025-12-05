@@ -4,21 +4,24 @@ from django.views.generic import CreateView
 from django.views.generic import UpdateView
 from django.views.generic import DeleteView
 from django.views import View
-from django.urls import path
+from django.urls import path, reverse
 
 class _CRUDMixin:
 
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        if hasattr(self, 'model') and self.model:
-            meta = self.model._meta
-            context.update({
-                'model_name': meta.model_name,
-                'verbose_name': meta.verbose_name,
-                'verbose_name_plural': meta.verbose_name_plural,
+        meta = self.model._meta
+        context.update({
+            'model_name': meta.model_name,
+            'verbose_name': meta.verbose_name,
+            'verbose_name_plural': meta.verbose_name_plural,
             })
         return context
+    
+    def get_success_url(self):
+        model_name = self.model._meta.model_name
+        return reverse(f'{model_name}-list')
 
 
 class CRUDView(View):
