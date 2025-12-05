@@ -1,11 +1,5 @@
 import pytest
-from django.test import Client
 from example.models import Author, Book
-
-
-@pytest.fixture
-def client():
-    return Client()
 
 
 @pytest.fixture
