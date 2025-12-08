@@ -1,4 +1,6 @@
 import pytest
+from datetime import date
+from decimal import Decimal
 from example.models import Author, Book
 
 
@@ -9,7 +11,14 @@ def author():
 
 @pytest.fixture
 def book(author):
-    return Book.objects.create(title='Test Book', author=author)
+    return Book.objects.create(
+        title='Test Book',
+        author=author,
+        isbn='1234567890123',
+        price=Decimal('19.99'),
+        pub_date=date(2024, 1, 1),
+        checked_out=False
+    )
 
 
 @pytest.mark.django_db

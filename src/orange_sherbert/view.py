@@ -5,17 +5,32 @@ from django.views.generic import UpdateView
 from django.views.generic import DeleteView
 from django.views import View
 from django.urls import path, reverse
+from django.db.models import Q
 
 class _CRUDMixin:
 
-    
+    def get_queryset(self, **kwargs):
+        super().get_queryset()
+        queryset = self.model.objects.all()
+        
+        filter_fields = self.filter_fields
+        if filter_fields:
+            for field in filter_fields:
+                field_value = self.request.GET.get(field)
+                if field_value:
+                    queryset = queryset.filter(**{field: field_value})
+        
+        return queryset
+        
     def get_context_data(self, **kwargs):
+        super().get_context_data(**kwargs)
         context = super().get_context_data(**kwargs)
         meta = self.model._meta
         context.update({
             'model_name': meta.model_name,
             'verbose_name': meta.verbose_name,
             'verbose_name_plural': meta.verbose_name_plural,
+            'filter_fields': self.filter_fields,
             })
         return context
     
@@ -26,7 +41,8 @@ class _CRUDMixin:
 
 class CRUDView(View):
     model = None
-    fields = None
+    fields = []
+    filter_fields = []
     view_type = None
     
     templates = {
@@ -51,7 +67,7 @@ class CRUDView(View):
             view_type: type(
                 f'_CRUD{base_class.__name__}',
                 (_CRUDMixin, base_class),
-                {}
+                {'fields': None, 'filter_fields': None}
             )
             for view_type, base_class in cls._base_view_classes.items()
         }
@@ -64,11 +80,10 @@ class CRUDView(View):
         
         view_kwargs = {
             'model': self.model,
-            'template_name': self.templates[view_type]
+            'template_name': self.templates[view_type],
+            'fields': self.fields,
+            'filter_fields': self.filter_fields
         }
-        
-        if view_type == 'create' or view_type == 'update':
-            view_kwargs['fields'] = self.fields
         
         view = view_class.as_view(**view_kwargs)
         return view(request, *args, **kwargs)

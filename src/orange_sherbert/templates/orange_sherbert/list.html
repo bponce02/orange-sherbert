@@ -11,6 +11,33 @@
             <div class="card-actions justify-end">
                 <a href="{% url model_name|add:'-create' %}" class="btn btn-primary">Create New</a>
             </div>
+            
+            <!-- Filter Form -->
+            {% if filter_fields and object_list %}
+            <form method="get" action="" class="flex flex-wrap gap-2 my-4 p-4 bg-base-200 rounded-lg" id="filter-form">
+                {% for field in filter_fields %}
+                    {% get_field_options object_list field as options %}
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">{{ field|title }}</span>
+                        </label>
+                        <select name="{{ field }}" class="select select-bordered select-sm w-full max-w-xs" onchange="this.form.submit()">
+                            <option value="">All</option>
+                            {% for option in options %}
+                                <option value="{{ option }}" {% is_selected option request field %}>
+                                    {{ option }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endfor %}
+                
+                <div class="form-control self-end">
+                    <a href="?" class="btn btn-ghost btn-sm">Clear All</a>
+                </div>
+            </form>
+            {% endif %}
+            
             <table class="table">
                 <thead>
                     <tr>
@@ -30,7 +57,7 @@
                             {% for field_name, field_value in fields %}
                                 <td>{{ field_value }}</td>
                             {% endfor %}
-                            <td class="max-w-30">
+                            <td class="min-w-40 max-w-40">
                                 <a href="{% url model_name|add:'-detail' object.pk %}" class="btn btn-sm btn-ghost">View</a>
                                 <a href="{% url model_name|add:'-update' object.pk %}" class="btn btn-sm btn-ghost">Edit</a>
                                 <a href="{% url model_name|add:'-delete' object.pk %}" class="btn btn-sm btn-ghost">Delete</a>

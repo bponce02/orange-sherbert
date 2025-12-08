@@ -22,3 +22,16 @@ def get_object_fields(obj):
             field_value = getattr(obj, field.name, '')
             fields.append((field_name, field_value))
     return fields
+
+
+@register.simple_tag
+def get_field_options(obj, field_name):
+    model = obj.model
+    distinct_values = model.objects.values_list(field_name, flat=True).distinct().order_by(field_name)
+    return [v for v in distinct_values if v not in (None, '')]
+
+
+@register.simple_tag
+def is_selected(option, request, field):
+    current = request.GET.get(field, '')
+    return 'selected' if str(option) == str(current) else ''
