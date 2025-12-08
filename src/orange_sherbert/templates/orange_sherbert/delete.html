@@ -3,11 +3,21 @@
 {% block title %}Delete {{ object }}{% endblock %}
 
 {% block content %}
-<h1>Delete {{ object }}</h1>
-<p>Are you sure you want to delete "{{ object }}"?</p>
-<form method="post">
-    {% csrf_token %}
-    <button type="submit">Delete</button>
-    <a href="{% url model_name|add:'-detail' object.pk %}">Cancel</a>
-</form>
+<div class="container mx-auto">
+    <div class="card">
+        <div class="card-body">
+            <h1 class="card-title text-2xl mb-4">Delete {{ object }}</h1>
+            
+            <p class="mb-6">Are you sure you want to delete "<strong>{{ object }}</strong>"?</p>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="card-actions justify-end gap-2">
+                    <a href="{% url model_name|add:'-detail' object.pk %}" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-error">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}

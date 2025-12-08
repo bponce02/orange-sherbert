@@ -3,11 +3,45 @@
 {% block title %}Update {{ object }}{% endblock %}
 
 {% block content %}
-<h1>Update {{ object }}</h1>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Update</button>
-    <a href="{% url model_name|add:'-detail' object.pk %}">Cancel</a>
-</form>
+<div class="container mx-auto">
+    <div class="card">
+        <div class="card-body">
+            <h1 class="card-title text-2xl mb-4">Update {{ object }}</h1>
+            
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                
+                {% for field in form %}
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">{{ field.label }}</span>
+                    </label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ field.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                    {% if field.help_text %}
+                        <label class="label">
+                            <span class="label-text-alt">{{ field.help_text }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-error">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+                
+                <div class="card-actions justify-end gap-2 mt-6">
+                    <a href="{% url model_name|add:'-detail' object.pk %}" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
