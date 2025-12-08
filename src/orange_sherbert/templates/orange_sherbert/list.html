@@ -30,7 +30,7 @@
                             {% for field_name, field_value in fields %}
                                 <td>{{ field_value }}</td>
                             {% endfor %}
-                            <td>
+                            <td class="max-w-30">
                                 <a href="{% url model_name|add:'-detail' object.pk %}" class="btn btn-sm btn-ghost">View</a>
                                 <a href="{% url model_name|add:'-update' object.pk %}" class="btn btn-sm btn-ghost">Edit</a>
                                 <a href="{% url model_name|add:'-delete' object.pk %}" class="btn btn-sm btn-ghost">Delete</a>
