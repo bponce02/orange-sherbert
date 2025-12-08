@@ -4,10 +4,11 @@ from .models import Book, Author
 class BookCRUDView(CRUDView):
     model = Book
     fields = '__all__'
-    filter_fields = ['title', 'author', 'checked_out']
+    filter_fields = ['author', 'checked_out']
+    search_fields = ['title', 'isbn']
 
 class AuthorCRUDView(CRUDView):
     model = Author
     fields = '__all__'
-    filter_fields = ['name']
+    search_fields = ['name']
     

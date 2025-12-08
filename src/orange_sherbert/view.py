@@ -20,6 +20,14 @@ class _CRUDMixin:
                 if field_value:
                     queryset = queryset.filter(**{field: field_value})
         
+        search_query = self.request.GET.get('search', '').strip()
+        search_fields = self.search_fields
+        if search_query and search_fields:
+            q_objects = Q()
+            for field in search_fields:
+                q_objects |= Q(**{f'{field}__icontains': search_query})
+            queryset = queryset.filter(q_objects)
+        
         return queryset
         
     def get_context_data(self, **kwargs):
@@ -31,6 +39,8 @@ class _CRUDMixin:
             'verbose_name': meta.verbose_name,
             'verbose_name_plural': meta.verbose_name_plural,
             'filter_fields': self.filter_fields,
+            'search_fields': self.search_fields,
+            'search_query': self.request.GET.get('search', ''),
             })
         return context
     
@@ -43,6 +53,7 @@ class CRUDView(View):
     model = None
     fields = []
     filter_fields = []
+    search_fields = []
     view_type = None
     
     templates = {
@@ -67,7 +78,7 @@ class CRUDView(View):
             view_type: type(
                 f'_CRUD{base_class.__name__}',
                 (_CRUDMixin, base_class),
-                {'fields': None, 'filter_fields': None}
+                {'fields': None, 'filter_fields': None, 'search_fields': None}
             )
             for view_type, base_class in cls._base_view_classes.items()
         }
@@ -82,7 +93,8 @@ class CRUDView(View):
             'model': self.model,
             'template_name': self.templates[view_type],
             'fields': self.fields,
-            'filter_fields': self.filter_fields
+            'filter_fields': self.filter_fields,
+            'search_fields': self.search_fields,
         }
         
         view = view_class.as_view(**view_kwargs)
