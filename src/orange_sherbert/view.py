@@ -9,104 +9,10 @@ from django.db.models import Q
 from django.http import HttpResponseForbidden
 
 
-class CRUDView(View):
-    model = None
-    enforce_model_permissions = False
-    fields = []
-    objects_data = None
-    restricted_fields = []
+class _CRUDMixin:
+    fields = None
     filter_fields = []
     search_fields = []
-    view_type = None
-    
-    templates = {
-        'list': 'orange_sherbert/list.html',
-        'detail': 'orange_sherbert/detail.html',
-        'create': 'orange_sherbert/create.html',
-        'update': 'orange_sherbert/update.html',
-        'delete': 'orange_sherbert/delete.html',
-    }
-    
-    _base_view_classes = {
-        'list': ListView,
-        'detail': DetailView,
-        'create': CreateView,
-        'update': UpdateView,
-        'delete': DeleteView,
-    }
-    
-    @classmethod
-    def _get_view_classes(cls):
-        return {
-            view_type: type(
-                f'_CRUD{base_class.__name__}',
-                (_CRUDMixin, base_class),
-                {'fields': None, 'filter_fields': None, 'search_fields': None}
-            )
-            for view_type, base_class in cls._base_view_classes.items()
-        }
-    
-    def dispatch(self, request, *args, **kwargs):
-        view_type = getattr(self, 'view_type', 'list')
-        
-        permission_map = {
-            'list': 'view',
-            'detail': 'view',
-            'create': 'add',
-            'update': 'change',
-            'delete': 'delete',
-        }
-        
-        action = permission_map.get(view_type, 'view')
-        app_label = self.model._meta.app_label
-        model_name = self.model._meta.model_name
-        permission = f'{app_label}.{action}_{model_name}'
-        
-        if self.fields == '__all__':
-            self.fields = {f.name: f.verbose_name for f in self.model._meta.fields if not f.primary_key}
-        
-        if self.restricted_fields:
-            for field in self.restricted_fields:
-                if field in self.fields:
-                    del self.fields[field]
- 
-        if self.enforce_model_permissions and not request.user.has_perm(permission):
-            return HttpResponseForbidden("You do not have permission to perform this action.")
-        
-        view_classes = self._get_view_classes()
-        view_class = view_classes[view_type]
-        
-        view_kwargs = {
-            'model': self.model,
-            'template_name': self.templates[view_type],
-            'fields': self.fields,
-            'filter_fields': self.filter_fields,
-            'search_fields': self.search_fields,
-        }
-        
-        view = view_class.as_view(**view_kwargs)
-        return view(request, *args, **kwargs)
-    
-    @classmethod
-    def get_model_name(cls):
-        if cls.model is None:
-            raise ValueError("model attribute must be set")
-        return cls.model._meta.model_name
-    
-    @classmethod
-    def get_urls(cls):
-        model_name = cls.get_model_name()
-        app_name = cls.model._meta.app_label
-
-        return [
-            path(f'{app_name}/{model_name}/', cls.as_view(view_type='list'), name=f'{model_name}-list'),
-            path(f'{app_name}/{model_name}/create/', cls.as_view(view_type='create'), name=f'{model_name}-create'),
-            path(f'{app_name}/{model_name}/<int:pk>/', cls.as_view(view_type='detail'), name=f'{model_name}-detail'),
-            path(f'{app_name}/{model_name}/<int:pk>/update/', cls.as_view(view_type='update'), name=f'{model_name}-update'),
-            path(f'{app_name}/{model_name}/<int:pk>/delete/', cls.as_view(view_type='delete'), name=f'{model_name}-delete'),
-        ]
-
-class _CRUDMixin:
 
     def get_queryset(self, **kwargs):
         super().get_queryset()
@@ -138,14 +44,15 @@ class _CRUDMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         meta = self.model._meta
-        
         object_data = []
+
         for obj in context['object_list']:
             field_tuples = []
             for field_name, verbose_name in self.fields.items():
                 value = getattr(obj, field_name, '')
                 field_tuples.append((field_name, verbose_name, value))
             object_data.append({'object': obj, 'fields': field_tuples})
+        
         context.update({
             'model_name': meta.model_name,
             'verbose_name': meta.verbose_name,
@@ -161,3 +68,92 @@ class _CRUDMixin:
     def get_success_url(self):
         model_name = self.model._meta.model_name
         return reverse(f'{model_name}-list')
+
+class _CRUDListView(_CRUDMixin, ListView):
+    template_name = 'orange_sherbert/list.html'
+
+class _CRUDDetailView(_CRUDMixin, DetailView):
+    template_name = 'orange_sherbert/detail.html'
+
+class _CRUDCreateView(_CRUDMixin, CreateView):
+    template_name = 'orange_sherbert/create.html'
+
+class _CRUDUpdateView(_CRUDMixin, UpdateView):
+    template_name = 'orange_sherbert/update.html'
+
+class _CRUDDeleteView(_CRUDMixin, DeleteView):
+    template_name = 'orange_sherbert/delete.html'
+
+class CRUDView(View):
+    model = None
+    enforce_model_permissions = False
+    fields = []
+    objects_data = None
+    restricted_fields = []
+    filter_fields = []
+    search_fields = []
+    view_type = None
+    
+    def dispatch(self, request, *args, **kwargs):
+        view_type = getattr(self, 'view_type', 'list')
+        
+        permission_map = {
+            'list': 'view',
+            'detail': 'view',
+            'create': 'add',
+            'update': 'change',
+            'delete': 'delete',
+        }
+        view_classes = {
+            'list': _CRUDListView,
+            'detail': _CRUDDetailView,
+            'create': _CRUDCreateView,
+            'update': _CRUDUpdateView,
+            'delete': _CRUDDeleteView,
+        }
+        view_class = view_classes[view_type]
+        
+        action = permission_map.get(view_type, 'view')
+        app_label = self.model._meta.app_label
+        model_name = self.model._meta.model_name
+        permission = f'{app_label}.{action}_{model_name}'
+        
+        if self.fields == '__all__':
+            self.fields = {f.name: f.verbose_name for f in self.model._meta.fields if not f.primary_key}
+        
+        if self.restricted_fields:
+            for field in self.restricted_fields:
+                if field in self.fields:
+                    del self.fields[field]
+ 
+        if self.enforce_model_permissions and not request.user.has_perm(permission):
+            return HttpResponseForbidden("You do not have permission to perform this action.")
+        
+        view_kwargs = {
+            'model': self.model,
+            'fields': self.fields,
+            'filter_fields': self.filter_fields,
+            'search_fields': self.search_fields,
+        }
+        
+        view = view_class.as_view(**view_kwargs)
+        return view(request, *args, **kwargs)
+    
+    @classmethod
+    def get_model_name(cls):
+        if cls.model is None:
+            raise ValueError("model attribute must be set")
+        return cls.model._meta.model_name
+    
+    @classmethod
+    def get_urls(cls):
+        model_name = cls.get_model_name()
+        app_name = cls.model._meta.app_label
+
+        return [
+            path(f'{app_name}/{model_name}/', cls.as_view(view_type='list'), name=f'{model_name}-list'),
+            path(f'{app_name}/{model_name}/create/', cls.as_view(view_type='create'), name=f'{model_name}-create'),
+            path(f'{app_name}/{model_name}/<int:pk>/', cls.as_view(view_type='detail'), name=f'{model_name}-detail'),
+            path(f'{app_name}/{model_name}/<int:pk>/update/', cls.as_view(view_type='update'), name=f'{model_name}-update'),
+            path(f'{app_name}/{model_name}/<int:pk>/delete/', cls.as_view(view_type='delete'), name=f'{model_name}-delete'),
+        ]

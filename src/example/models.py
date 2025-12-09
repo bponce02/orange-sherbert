@@ -8,6 +8,7 @@ class Book(models.Model):
     pub_date = models.DateField(verbose_name='Publication Date')
     checked_out = models.BooleanField(default=False,verbose_name='Checked Out')
     ordered_from = models.CharField(max_length=100, blank=True, null=True, verbose_name='Ordered From')
+    
     class Meta:
         verbose_name = 'Book'
         verbose_name_plural = 'Books'
