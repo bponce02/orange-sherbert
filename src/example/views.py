@@ -6,6 +6,7 @@ class BookCRUDView(CRUDView):
     fields = '__all__'
     filter_fields = ['author', 'checked_out']
     search_fields = ['title', 'isbn']
+    restricted_fields = {'ordered_from': 'can_view_ordered_from'}
 
 class AuthorCRUDView(CRUDView):
     model = Author

@@ -6,6 +6,7 @@ from django.views.generic import DeleteView
 from django.views import View
 from django.urls import path, reverse
 from django.db.models import Q
+from django.http import HttpResponseForbidden
 
 class _CRUDMixin:
 
@@ -31,17 +32,26 @@ class _CRUDMixin:
         return queryset
         
     def get_context_data(self, **kwargs):
-        super().get_context_data(**kwargs)
         context = super().get_context_data(**kwargs)
         meta = self.model._meta
+        
+        object_data = []
+        if 'object_list' in context:
+            for obj in context['object_list']:
+                field_tuples = [(field_name, verbose_name, getattr(obj, field_name, '')) 
+                               for field_name, verbose_name in self.fields.items()]
+                object_data.append({'object': obj, 'fields': field_tuples})
+        
         context.update({
             'model_name': meta.model_name,
             'verbose_name': meta.verbose_name,
             'verbose_name_plural': meta.verbose_name_plural,
+            'fields': self.fields,
+            'object_data': object_data,
             'filter_fields': self.filter_fields,
             'search_fields': self.search_fields,
             'search_query': self.request.GET.get('search', ''),
-            })
+        })
         return context
     
     def get_success_url(self):
@@ -51,7 +61,10 @@ class _CRUDMixin:
 
 class CRUDView(View):
     model = None
+    enforce_model_permissions = False
     fields = []
+    objects_data = None
+    restricted_fields = []
     filter_fields = []
     search_fields = []
     view_type = None
@@ -86,6 +99,30 @@ class CRUDView(View):
     def dispatch(self, request, *args, **kwargs):
         view_type = getattr(self, 'view_type', 'list')
         
+        permission_map = {
+            'list': 'view',
+            'detail': 'view',
+            'create': 'add',
+            'update': 'change',
+            'delete': 'delete',
+        }
+        
+        action = permission_map.get(view_type, 'view')
+        app_label = self.model._meta.app_label
+        model_name = self.model._meta.model_name
+        permission = f'{app_label}.{action}_{model_name}'
+        
+        if self.fields == '__all__':
+            self.fields = {f.name: f.verbose_name for f in self.model._meta.fields if not f.primary_key}
+        
+        if self.restricted_fields:
+            for field in self.restricted_fields:
+                if field in self.fields:
+                    del self.fields[field]
+ 
+        if self.enforce_model_permissions and not request.user.has_perm(permission):
+            return HttpResponseForbidden("You do not have permission to perform this action.")
+        
         view_classes = self._get_view_classes()
         view_class = view_classes[view_type]
         
@@ -110,7 +147,7 @@ class CRUDView(View):
     def get_urls(cls):
         model_name = cls.get_model_name()
         app_name = cls.model._meta.app_label
-        
+
         return [
             path(f'{app_name}/{model_name}/', cls.as_view(view_type='list'), name=f'{model_name}-list'),
             path(f'{app_name}/{model_name}/create/', cls.as_view(view_type='create'), name=f'{model_name}-create'),

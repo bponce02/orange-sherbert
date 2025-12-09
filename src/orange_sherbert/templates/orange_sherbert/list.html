@@ -66,37 +66,33 @@
             <table class="table">
                 <thead>
                     <tr>
-                        {% if object_list %}
-                            {% get_object_fields object_list.0 as first_object_fields %}
-                            {% for name, label, value in first_object_fields %}
-                                <th class="cursor-pointer hover:bg-base-200 transition-colors">
-                                    <a href="{% sort_url name %}" class="flex items-center gap-1 w-full h-full text-inherit no-underline">
-                                        {{ label }}
-                                        {% if request.GET.sort_by == name %}
-                                            {% if request.GET.sort_dir == 'desc' %}
-                                                <span>▼</span>
-                                            {% else %}
-                                                <span>▲</span>
-                                            {% endif %}
+                        {% for field_name, field_label in fields.items %}
+                            <th class="cursor-pointer hover:bg-base-200 transition-colors">
+                                <a href="{% sort_url field_name %}" class="flex items-center gap-1 w-full h-full text-inherit no-underline">
+                                    {{ field_label }}
+                                    {% if request.GET.sort_by == field_name %}
+                                        {% if request.GET.sort_dir == 'desc' %}
+                                            <span>▼</span>
+                                        {% else %}
+                                            <span>▲</span>
                                         {% endif %}
-                                    </a>
-                                </th>
-                            {% endfor %}
-                        {% endif %}
+                                    {% endif %}
+                                </a>
+                            </th>
+                        {% endfor %}
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for object in object_list %}
+                    {% for item in object_data %}
                         <tr>
-                            {% get_object_fields object as fields %}
-                            {% for name, label, value in fields %}
+                            {% for field_name, verbose_name, value in item.fields %}
                                 <td>{{ value }}</td>
                             {% endfor %}
                             <td class="min-w-40 max-w-40">
-                                <a href="{% url model_name|add:'-detail' object.pk %}" class="btn btn-sm btn-ghost">View</a>
-                                <a href="{% url model_name|add:'-update' object.pk %}" class="btn btn-sm btn-ghost">Edit</a>
-                                <a href="{% url model_name|add:'-delete' object.pk %}" class="btn btn-sm btn-ghost">Delete</a>
+                                <a href="{% url model_name|add:'-detail' item.object.pk %}" class="btn btn-sm btn-ghost">View</a>
+                                <a href="{% url model_name|add:'-update' item.object.pk %}" class="btn btn-sm btn-ghost">Edit</a>
+                                <a href="{% url model_name|add:'-delete' item.object.pk %}" class="btn btn-sm btn-ghost">Delete</a>
                             </td>
                         </tr>
                     {% empty %}
