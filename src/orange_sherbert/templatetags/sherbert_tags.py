@@ -18,9 +18,8 @@ def get_object_fields(obj):
     fields = []
     for field in obj._meta.fields:
         if field.name != 'id':
-            field_name = field.verbose_name
             field_value = getattr(obj, field.name, '')
-            fields.append((field.name, field_name, field_value))
+            fields.append((field.name, field.verbose_name, field_value))
     return fields
 
 

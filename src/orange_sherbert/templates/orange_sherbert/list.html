@@ -73,7 +73,7 @@
                             {% for name, label, value in first_object_fields %}
                                 <th class="cursor-pointer hover:bg-base-200 transition-colors">
                                     <a href="{% sort_url name %}" class="flex items-center gap-1 w-full h-full text-inherit no-underline">
-                                        {{ label|title }}
+                                        {{ label }}
                                         {% if request.GET.sort_by == name %}
                                             {% if request.GET.sort_dir == 'desc' %}
                                                 <span>▼</span>
