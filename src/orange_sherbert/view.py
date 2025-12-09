@@ -29,6 +29,12 @@ class _CRUDMixin:
                 q_objects |= Q(**{f'{field}__icontains': search_query})
             queryset = queryset.filter(q_objects)
         
+        sort_by = self.request.GET.get('sort_by')
+        sort_dir = self.request.GET.get('sort_dir', 'asc')
+        if sort_by:
+            order_field = f'-{sort_by}' if sort_dir == 'desc' else sort_by
+            queryset = queryset.order_by(order_field)
+        
         return queryset
         
     def get_context_data(self, **kwargs):
