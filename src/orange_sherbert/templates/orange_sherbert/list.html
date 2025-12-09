@@ -13,6 +13,13 @@
             </div>
             
             <form method="get" action="" autocomplete="off">
+                {% if request.GET.sort_by %}
+                <input type="hidden" name="sort_by" value="{{ request.GET.sort_by }}">
+                {% endif %}
+                {% if request.GET.sort_dir %}
+                <input type="hidden" name="sort_dir" value="{{ request.GET.sort_dir }}">
+                {% endif %}
+
                 <!-- Search Box -->
                 {% if search_fields %}
                 <div class="my-4">
@@ -63,8 +70,19 @@
                     <tr>
                         {% if object_list %}
                             {% get_object_fields object_list.0 as first_object_fields %}
-                            {% for field_name, field_value in first_object_fields %}
-                                <th>{{ field_name|title }}</th>
+                            {% for name, label, value in first_object_fields %}
+                                <th class="cursor-pointer hover:bg-base-200 transition-colors">
+                                    <a href="{% sort_url name %}" class="flex items-center gap-1 w-full h-full text-inherit no-underline">
+                                        {{ label|title }}
+                                        {% if request.GET.sort_by == name %}
+                                            {% if request.GET.sort_dir == 'desc' %}
+                                                <span>▼</span>
+                                            {% else %}
+                                                <span>▲</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </a>
+                                </th>
                             {% endfor %}
                         {% endif %}
                         <th>Actions</th>
@@ -74,8 +92,8 @@
                     {% for object in object_list %}
                         <tr>
                             {% get_object_fields object as fields %}
-                            {% for field_name, field_value in fields %}
-                                <td>{{ field_value }}</td>
+                            {% for name, label, value in fields %}
+                                <td>{{ value }}</td>
                             {% endfor %}
                             <td class="min-w-40 max-w-40">
                                 <a href="{% url model_name|add:'-detail' object.pk %}" class="btn btn-sm btn-ghost">View</a>

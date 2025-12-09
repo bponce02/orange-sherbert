@@ -6,13 +6,13 @@ register = template.Library()
 @register.simple_tag
 def get_object_fields(obj):
     """
-    Returns a list of tuples containing (field_name, field_value) for all fields.
+    Returns a list of tuples containing (field_name, verbose_name, field_value) for all fields.
     Excludes the 'id' field.
     
     Usage in template:
         {% get_object_fields object as fields %}
-        {% for field_name, field_value in fields %}
-            <td>{{ field_value }}</td>
+        {% for name, label, value in fields %}
+            <td>{{ value }}</td>
         {% endfor %}
     """
     fields = []
@@ -20,7 +20,7 @@ def get_object_fields(obj):
         if field.name != 'id':
             field_name = field.verbose_name
             field_value = getattr(obj, field.name, '')
-            fields.append((field_name, field_value))
+            fields.append((field.name, field_name, field_value))
     return fields
 
 
@@ -35,3 +35,21 @@ def get_field_options(obj, field_name):
 def is_selected(option, request, field):
     current = request.GET.get(field, '')
     return 'selected' if str(option) == str(current) else ''
+
+
+@register.simple_tag(takes_context=True)
+def sort_url(context, field_name):
+    request = context['request']
+    query_params = request.GET.copy()
+    
+    current_sort_by = query_params.get('sort_by', '')
+    current_sort_dir = query_params.get('sort_dir', 'asc')
+    
+    query_params['sort_by'] = field_name
+    
+    if current_sort_by == field_name and current_sort_dir == 'asc':
+        query_params['sort_dir'] = 'desc'
+    else:
+        query_params['sort_dir'] = 'asc'
+        
+    return f"?{query_params.urlencode()}"
