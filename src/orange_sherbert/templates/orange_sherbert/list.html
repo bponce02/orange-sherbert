@@ -12,59 +12,87 @@
                 <a href="{% url model_name|add:'-create' %}" class="btn btn-primary">Create New</a>
             </div>
             
-            <form method="get" action="" autocomplete="off">
-                <!-- Search Box -->
-                {% if search_fields %}
-                <div class="my-4">
-                    <div class="flex gap-2">
-                        <input 
-                            type="text" 
-                            name="search" 
-                            value="{{ search_query }}" 
-                            placeholder="Search {{ verbose_name_plural|lower }}..." 
-                            class="input input-bordered flex-1"
-                        />
-                        {% if search_query %}
-                        <a href="?" class="btn btn-ghost">Clear</a>
-                        {% endif %}
-                    </div>
+            <!-- Search Box -->
+            {% if search_fields %}
+            <div class="my-4">
+                <div class="flex gap-2">
+                    <input 
+                        type="text" 
+                        value="{{ search_query }}" 
+                        placeholder="Search {{ verbose_name_plural|lower }}..." 
+                        class="input input-bordered flex-1"
+                        onkeydown="if(event.key === 'Enter') { 
+                            const baseUrl = '{% update_params search='' %}';
+                            const separator = baseUrl.includes('?') ? '&' : '?';
+                            window.location.href = baseUrl + separator + 'search=' + encodeURIComponent(this.value);
+                        }"
+                    />
+                    <button 
+                        class="btn btn-primary"
+                        onclick="
+                            const baseUrl = '{% update_params search='' %}';
+                            const separator = baseUrl.includes('?') ? '&' : '?';
+                            window.location.href = baseUrl + separator + 'search=' + encodeURIComponent(this.previousElementSibling.value);
+                        "
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </button>
+                    {% if search_query %}
+                    <a href="?" class="btn btn-ghost">Clear</a>
+                    {% endif %}
                 </div>
-                {% endif %}
-                
-                <!-- Filter Form -->
-                {% if filter_fields and object_list %}
-                <div class="flex flex-wrap gap-2 my-4 p-4 bg-base-200 rounded-lg" id="filter-form">
-                    {% for field in filter_fields %}
-                        {% get_field_options object_list field as options %}
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text font-semibold">{{ field|title }}</span>
-                            </label>
-                            <select name="{{ field }}" class="select select-bordered select-sm w-full max-w-xs" onchange="this.form.submit()">
-                                <option value="">All</option>
-                                {% for option in options %}
-                                    <option value="{{ option }}" {% is_selected option request field %}>
-                                        {{ option }}
-                                    </option>
-                                {% endfor %}
-                            </select>
+            </div>
+            {% endif %}
+            
+            <!-- Filter Section -->
+            {% if filter_fields and object_list %}
+            <div class="flex flex-wrap gap-2 my-4 p-4 bg-base-200 rounded-lg">
+                {% for field in filter_fields %}
+                    {% get_field_options object_list field as options %}
+                    {% get_param request field as current_val %}
+                    <div class="dropdown">
+                        <div tabindex="0" role="button" class="btn btn-sm m-1 {% if current_val %}btn-primary{% else %}btn-outline{% endif %}">
+                            {{ field|title }}
+                            {% if current_val %}: {{ current_val }}{% endif %}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-1"><path d="m6 9 6 6 6-6"/></svg>
                         </div>
-                    {% endfor %}
-                    
-                    <div class="form-control self-end">
-                        <a href="?" class="btn btn-ghost btn-sm">Clear All</a>
+                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                            <li><a href="{% update_param_dynamic field '' %}" class="{% if not current_val %}active{% endif %}">All</a></li>
+                            {% for option in options %}
+                                <li>
+                                    <a href="{% update_param_dynamic field option %}" class="{% if current_val == option %}active{% endif %}">
+                                        {{ option }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
                     </div>
-                </div>
-                {% endif %}
-            </form>
+                {% endfor %}
+                
+                <a href="?" class="btn btn-ghost btn-sm self-center">Clear All</a>
+            </div>
+            {% endif %}
             
             <table class="table">
                 <thead>
                     <tr>
                         {% if object_list %}
                             {% get_object_fields object_list.0 as first_object_fields %}
-                            {% for field_name, field_value in first_object_fields %}
-                                <th>{{ field_name|title }}</th>
+                            {% for name, label, value in first_object_fields %}
+                                <th class="cursor-pointer hover:bg-base-200 transition-colors">
+                                    <a href="{% sort_url name %}" class="flex items-center gap-1 w-full h-full text-inherit no-underline">
+                                        {{ label|title }}
+                                        {% if request.GET.sort_by == name %}
+                                            {% if request.GET.sort_dir == 'desc' %}
+                                                <span>▼</span>
+                                            {% else %}
+                                                <span>▲</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </a>
+                                </th>
                             {% endfor %}
                         {% endif %}
                         <th>Actions</th>
@@ -74,8 +102,8 @@
                     {% for object in object_list %}
                         <tr>
                             {% get_object_fields object as fields %}
-                            {% for field_name, field_value in fields %}
-                                <td>{{ field_value }}</td>
+                            {% for name, label, value in fields %}
+                                <td>{{ value }}</td>
                             {% endfor %}
                             <td class="min-w-40 max-w-40">
                                 <a href="{% url model_name|add:'-detail' object.pk %}" class="btn btn-sm btn-ghost">View</a>

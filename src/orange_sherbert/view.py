@@ -28,6 +28,15 @@ class _CRUDMixin:
                 q_objects |= Q(**{f'{field}__icontains': search_query})
             queryset = queryset.filter(q_objects)
         
+        sort_by = self.request.GET.get('sort_by', self.sort_by)
+        sort_dir = self.request.GET.get('sort_dir', self.sort_dir)
+        
+        if sort_by:
+            if sort_dir == 'desc':
+                queryset = queryset.order_by(f'-{sort_by}')
+            else:
+                queryset = queryset.order_by(sort_by)
+        
         return queryset
         
     def get_context_data(self, **kwargs):
@@ -54,6 +63,7 @@ class CRUDView(View):
     fields = []
     filter_fields = []
     search_fields = []
+
     view_type = None
     
     templates = {
@@ -78,7 +88,7 @@ class CRUDView(View):
             view_type: type(
                 f'_CRUD{base_class.__name__}',
                 (_CRUDMixin, base_class),
-                {'fields': None, 'filter_fields': None, 'search_fields': None}
+                {'fields': None, 'filter_fields': None, 'search_fields': None, 'sort_by': None, 'sort_dir': None}
             )
             for view_type, base_class in cls._base_view_classes.items()
         }
