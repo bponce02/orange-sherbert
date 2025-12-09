@@ -14,10 +14,8 @@
             
             <form method="get" action="" autocomplete="off">
                 {% if request.GET.sort_by %}
-                <input type="hidden" name="sort_by" value="{{ request.GET.sort_by }}">
-                {% endif %}
-                {% if request.GET.sort_dir %}
-                <input type="hidden" name="sort_dir" value="{{ request.GET.sort_dir }}">
+                <input type="hidden" name="sort_by" value="{{ request.GET.sort_by }}" />
+                <input type="hidden" name="sort_dir" value="{{ request.GET.sort_dir }}" />
                 {% endif %}
 
                 <!-- Search Box -->
@@ -45,7 +43,7 @@
                         {% get_field_options object_list field as options %}
                         <div class="form-control">
                             <label class="label">
-                                <span class="label-text font-semibold">{{ field|title }}</span>
+                                <span class="label-text font-semibold">{% get_verbose_name object_list.0 field %}</span>
                             </label>
                             <select name="{{ field }}" class="select select-bordered select-sm w-full max-w-xs" onchange="this.form.submit()">
                                 <option value="">All</option>

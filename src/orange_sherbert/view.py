@@ -109,11 +109,12 @@ class CRUDView(View):
     @classmethod
     def get_urls(cls):
         model_name = cls.get_model_name()
+        app_name = cls.model._meta.app_label
         
         return [
-            path(f'{model_name}/', cls.as_view(view_type='list'), name=f'{model_name}-list'),
-            path(f'{model_name}/create/', cls.as_view(view_type='create'), name=f'{model_name}-create'),
-            path(f'{model_name}/<int:pk>/', cls.as_view(view_type='detail'), name=f'{model_name}-detail'),
-            path(f'{model_name}/<int:pk>/update/', cls.as_view(view_type='update'), name=f'{model_name}-update'),
-            path(f'{model_name}/<int:pk>/delete/', cls.as_view(view_type='delete'), name=f'{model_name}-delete'),
+            path(f'{app_name}/{model_name}/', cls.as_view(view_type='list'), name=f'{model_name}-list'),
+            path(f'{app_name}/{model_name}/create/', cls.as_view(view_type='create'), name=f'{model_name}-create'),
+            path(f'{app_name}/{model_name}/<int:pk>/', cls.as_view(view_type='detail'), name=f'{model_name}-detail'),
+            path(f'{app_name}/{model_name}/<int:pk>/update/', cls.as_view(view_type='update'), name=f'{model_name}-update'),
+            path(f'{app_name}/{model_name}/<int:pk>/delete/', cls.as_view(view_type='delete'), name=f'{model_name}-delete'),
         ]

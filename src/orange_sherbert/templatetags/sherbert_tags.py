@@ -36,6 +36,22 @@ def is_selected(option, request, field):
     return 'selected' if str(option) == str(current) else ''
 
 
+@register.simple_tag
+def get_verbose_name(obj, field_name):
+    """
+    Get the verbose name for a field from a model instance.
+    
+    Usage: {% get_verbose_name object 'author' %}
+    Returns: The field's verbose_name exactly as defined in the model
+    """
+    model = obj._meta.model
+    try:
+        field = model._meta.get_field(field_name)
+        return field.verbose_name
+    except:
+        return field_name.replace('_', ' ').title()
+
+
 @register.simple_tag(takes_context=True)
 def sort_url(context, field_name):
     request = context['request']
