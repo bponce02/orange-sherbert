@@ -25,38 +25,40 @@ def get_object_fields(obj):
     return fields
 
 @register.simple_tag(takes_context=True)
-def update_params(context, **kwargs):
+def update_params(context, _param_name=None, _param_value=None, **kwargs):
     """
-    Returns a URL with the updated query parameters.
-    Usage: {% update_params page=2 sort_by='name' %}
+    Returns a URL with updated query parameters.
+    
+    Two usage modes:
+    1. Static parameter names (keyword args):
+       {% update_params page=2 sort_by='name' %}
+       
+    2. Dynamic parameter name (positional args):
+       {% update_params field 'value' %}  # where 'field' is a variable
+    
+    Examples:
+        {% update_params search='' %}           # Remove search param
+        {% update_params author='John' %}       # Set author=John
+        {% update_params field option %}        # Set dynamic param from variables
     """
     request = context['request']
     query_params = request.GET.copy()
     
+    # Handle dynamic parameter (positional args)
+    if _param_name is not None:
+        if _param_value is None or _param_value == '':
+            if _param_name in query_params:
+                del query_params[_param_name]
+        else:
+            query_params[_param_name] = _param_value
+    
+    # Handle static parameters (keyword args)
     for key, value in kwargs.items():
         if value is None or value == '':
             if key in query_params:
                 del query_params[key]
         else:
             query_params[key] = value
-            
-    return f"?{query_params.urlencode()}"
-
-
-@register.simple_tag(takes_context=True)
-def update_param_dynamic(context, key, value):
-    """
-    Returns a URL with the updated query parameter where key is dynamic.
-    Usage: {% update_param_dynamic 'page' 2 %}
-    """
-    request = context['request']
-    query_params = request.GET.copy()
-    
-    if value is None or value == '':
-        if key in query_params:
-            del query_params[key]
-    else:
-        query_params[key] = value
             
     return f"?{query_params.urlencode()}"
 

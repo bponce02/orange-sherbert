@@ -59,10 +59,10 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-1"><path d="m6 9 6 6 6-6"/></svg>
                         </div>
                         <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-                            <li><a href="{% update_param_dynamic field '' %}" class="{% if not current_val %}active{% endif %}">All</a></li>
+                            <li><a href="{% update_params field '' %}" class="{% if not current_val %}active{% endif %}">All</a></li>
                             {% for option in options %}
                                 <li>
-                                    <a href="{% update_param_dynamic field option %}" class="{% if current_val == option %}active{% endif %}">
+                                    <a href="{% update_params field option %}" class="{% if current_val == option %}active{% endif %}">
                                         {{ option }}
                                     </a>
                                 </li>
