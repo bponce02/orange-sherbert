@@ -8,62 +8,6 @@ from django.urls import path, reverse
 from django.db.models import Q
 from django.http import HttpResponseForbidden
 
-class _CRUDMixin:
-
-    def get_queryset(self, **kwargs):
-        super().get_queryset()
-        queryset = self.model.objects.all()
-        
-        filter_fields = self.filter_fields
-        if filter_fields:
-            for field in filter_fields:
-                field_value = self.request.GET.get(field)
-                if field_value:
-                    queryset = queryset.filter(**{field: field_value})
-        
-        search_query = self.request.GET.get('search', '').strip()
-        search_fields = self.search_fields
-        if search_query and search_fields:
-            q_objects = Q()
-            for field in search_fields:
-                q_objects |= Q(**{f'{field}__icontains': search_query})
-            queryset = queryset.filter(q_objects)
-        
-        sort_by = self.request.GET.get('sort_by')
-        sort_dir = self.request.GET.get('sort_dir', 'asc')
-        if sort_by:
-            order_field = f'-{sort_by}' if sort_dir == 'desc' else sort_by
-            queryset = queryset.order_by(order_field)
-        
-        return queryset
-        
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        meta = self.model._meta
-        
-        object_data = []
-        if 'object_list' in context:
-            for obj in context['object_list']:
-                field_tuples = [(field_name, verbose_name, getattr(obj, field_name, '')) 
-                               for field_name, verbose_name in self.fields.items()]
-                object_data.append({'object': obj, 'fields': field_tuples})
-        
-        context.update({
-            'model_name': meta.model_name,
-            'verbose_name': meta.verbose_name,
-            'verbose_name_plural': meta.verbose_name_plural,
-            'fields': self.fields,
-            'object_data': object_data,
-            'filter_fields': self.filter_fields,
-            'search_fields': self.search_fields,
-            'search_query': self.request.GET.get('search', ''),
-        })
-        return context
-    
-    def get_success_url(self):
-        model_name = self.model._meta.model_name
-        return reverse(f'{model_name}-list')
-
 
 class CRUDView(View):
     model = None
@@ -161,3 +105,59 @@ class CRUDView(View):
             path(f'{app_name}/{model_name}/<int:pk>/update/', cls.as_view(view_type='update'), name=f'{model_name}-update'),
             path(f'{app_name}/{model_name}/<int:pk>/delete/', cls.as_view(view_type='delete'), name=f'{model_name}-delete'),
         ]
+
+class _CRUDMixin:
+
+    def get_queryset(self, **kwargs):
+        super().get_queryset()
+        queryset = self.model.objects.all()
+        
+        filter_fields = self.filter_fields
+        if filter_fields:
+            for field in filter_fields:
+                field_value = self.request.GET.get(field)
+                if field_value:
+                    queryset = queryset.filter(**{field: field_value})
+        
+        search_query = self.request.GET.get('search', '').strip()
+        search_fields = self.search_fields
+        if search_query and search_fields:
+            q_objects = Q()
+            for field in search_fields:
+                q_objects |= Q(**{f'{field}__icontains': search_query})
+            queryset = queryset.filter(q_objects)
+        
+        sort_by = self.request.GET.get('sort_by')
+        sort_dir = self.request.GET.get('sort_dir', 'asc')
+        if sort_by:
+            order_field = f'-{sort_by}' if sort_dir == 'desc' else sort_by
+            queryset = queryset.order_by(order_field)
+        
+        return queryset
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        meta = self.model._meta
+        
+        object_data = []
+        if 'object_list' in context:
+            for obj in context['object_list']:
+                field_tuples = [(field_name, verbose_name, getattr(obj, field_name, '')) 
+                               for field_name, verbose_name in self.fields.items()]
+                object_data.append({'object': obj, 'fields': field_tuples})
+        
+        context.update({
+            'model_name': meta.model_name,
+            'verbose_name': meta.verbose_name,
+            'verbose_name_plural': meta.verbose_name_plural,
+            'fields': self.fields,
+            'object_data': object_data,
+            'filter_fields': self.filter_fields,
+            'search_fields': self.search_fields,
+            'search_query': self.request.GET.get('search', ''),
+        })
+        return context
+    
+    def get_success_url(self):
+        model_name = self.model._meta.model_name
+        return reverse(f'{model_name}-list')
