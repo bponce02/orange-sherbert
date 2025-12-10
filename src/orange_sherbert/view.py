@@ -13,6 +13,7 @@ class _CRUDMixin:
     fields = None
     filter_fields = []
     search_fields = []
+    extra_actions = []
 
     def get_queryset(self, **kwargs):
         queryset = super().get_queryset()
@@ -50,7 +51,11 @@ class _CRUDMixin:
             for field_name, verbose_name in self.fields.items():
                 value = getattr(obj, field_name, '')
                 field_tuples.append((field_name, verbose_name, value))
-            object_data.append({'object': obj, 'fields': field_tuples})
+            
+            object_data.append({
+                'object': obj,
+                'fields': field_tuples,
+            })
         
         context.update({
             'model_name': meta.model_name,
@@ -61,6 +66,7 @@ class _CRUDMixin:
             'filter_fields': self.filter_fields,
             'search_fields': self.search_fields,
             'search_query': self.request.GET.get('search', ''),
+            'extra_actions': self.extra_actions,
         })
         return context
     
@@ -87,6 +93,7 @@ class CRUDView(View):
     model = None
     enforce_model_permissions = False
     fields = []
+    extra_actions = []
     restricted_fields = []
     filter_fields = []
     search_fields = []
@@ -132,6 +139,7 @@ class CRUDView(View):
             'fields': self.fields,
             'filter_fields': self.filter_fields,
             'search_fields': self.search_fields,
+            'extra_actions': self.extra_actions,
         }
         
         view = view_class.as_view(**view_kwargs)
@@ -148,10 +156,21 @@ class CRUDView(View):
         model_name = cls.get_model_name()
         app_name = cls.model._meta.app_label
 
-        return [
+        urls = [
             path(f'{app_name}/{model_name}/', cls.as_view(view_type='list'), name=f'{model_name}-list'),
             path(f'{app_name}/{model_name}/create/', cls.as_view(view_type='create'), name=f'{model_name}-create'),
             path(f'{app_name}/{model_name}/<int:pk>/', cls.as_view(view_type='detail'), name=f'{model_name}-detail'),
             path(f'{app_name}/{model_name}/<int:pk>/update/', cls.as_view(view_type='update'), name=f'{model_name}-update'),
             path(f'{app_name}/{model_name}/<int:pk>/delete/', cls.as_view(view_type='delete'), name=f'{model_name}-delete'),
         ]
+        
+        if cls.extra_actions:
+            for action in cls.extra_actions:
+                action_name = action['name']
+                view_class = action['view']
+                
+                url_name = f"{model_name}-{action_name}"
+                url_path = f'{app_name}/{model_name}/<int:pk>/{action_name}/'
+                urls.append(path(url_path, view_class.as_view(), name=url_name))
+        
+        return urls

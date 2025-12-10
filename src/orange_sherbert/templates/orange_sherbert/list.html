@@ -93,6 +93,16 @@
                                 <a href="{% url model_name|add:'-detail' item.object.pk %}" class="btn btn-sm btn-ghost">View</a>
                                 <a href="{% url model_name|add:'-update' item.object.pk %}" class="btn btn-sm btn-ghost">Edit</a>
                                 <a href="{% url model_name|add:'-delete' item.object.pk %}" class="btn btn-sm btn-ghost">Delete</a>
+                                {% for action in extra_actions %}
+                                    {% if action.method == 'GET' %}
+                                        <a href="{% url model_name|add:'-'|add:action.name item.object.pk %}" class="btn btn-sm btn-primary">{{ action.label }}</a>
+                                    {% else %}
+                                        <form method="post" action="{% url model_name|add:'-'|add:action.name item.object.pk %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-primary">{{ action.label }}</button>
+                                        </form>
+                                    {% endif %}
+                                {% endfor %}
                             </td>
                         </tr>
                     {% empty %}
