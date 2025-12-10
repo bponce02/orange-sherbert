@@ -13,9 +13,9 @@
                 <table class="table">
                     <tbody>
                         {% get_object_fields object as fields %}
-                        {% for field_name, field_value in fields %}
+                        {% for field_name, verbose_name, field_value in fields %}
                         <tr>
-                            <th class="w-1/3">{{ field_name|title }}</th>
+                            <th class="w-1/3">{{ verbose_name }}</th>
                             <td>{{ field_value }}</td>
                         </tr>
                         {% endfor %}

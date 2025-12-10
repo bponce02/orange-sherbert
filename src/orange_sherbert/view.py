@@ -46,16 +46,17 @@ class _CRUDMixin:
         meta = self.model._meta
         object_data = []
 
-        for obj in context['object_list']:
-            field_tuples = []
-            for field_name, verbose_name in self.fields.items():
-                value = getattr(obj, field_name, '')
-                field_tuples.append((field_name, verbose_name, value))
-            
-            object_data.append({
-                'object': obj,
-                'fields': field_tuples,
-            })
+        if 'object_list' in context:
+            for obj in context['object_list']:
+                field_tuples = []
+                for field_name, verbose_name in self.fields.items():
+                    value = getattr(obj, field_name, '')
+                    field_tuples.append((field_name, verbose_name, value))
+                
+                object_data.append({
+                    'object': obj,
+                    'fields': field_tuples,
+                })
         
         context.update({
             'model_name': meta.model_name,
