@@ -15,8 +15,7 @@ class _CRUDMixin:
     search_fields = []
 
     def get_queryset(self, **kwargs):
-        super().get_queryset()
-        queryset = self.model.objects.all()
+        queryset = super().get_queryset()
         
         filter_fields = self.filter_fields
         if filter_fields:
@@ -88,7 +87,6 @@ class CRUDView(View):
     model = None
     enforce_model_permissions = False
     fields = []
-    objects_data = None
     restricted_fields = []
     filter_fields = []
     search_fields = []
@@ -112,7 +110,7 @@ class CRUDView(View):
             'delete': _CRUDDeleteView,
         }
         view_class = view_classes[view_type]
-        
+
         action = permission_map.get(view_type, 'view')
         app_label = self.model._meta.app_label
         model_name = self.model._meta.model_name
