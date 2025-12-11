@@ -7,6 +7,7 @@ from django.views import View
 from django.urls import path, reverse
 from django.db.models import Q
 from django.http import HttpResponseForbidden
+from django.forms import inlineformset_factory
 
 
 class _CRUDMixin:
@@ -14,6 +15,64 @@ class _CRUDMixin:
     filter_fields = []
     search_fields = []
     extra_actions = []
+    inline_formsets = []
+    view_type = None
+
+    def _get_formsets(self, instance=None):
+        if not self.inline_formsets:
+            return []
+        
+        formsets = []
+        for formset_config in self.inline_formsets:
+            FormSet = inlineformset_factory(
+                self.model,
+                formset_config['model'],
+                fields=formset_config['fields'],
+                extra=1,
+                can_delete=formset_config.get('can_delete', True),
+            )
+            
+            formset_name = formset_config['model'].__name__.lower() + '_formset'
+            
+            if self.request.POST:
+                formset = FormSet(self.request.POST, instance=instance)
+            else:
+                formset = FormSet(instance=instance)
+            
+            formsets.append({
+                'name': formset_name,
+                'formset': formset,
+                'verbose_name': formset_config['model']._meta.verbose_name,
+                'verbose_name_plural': formset_config['model']._meta.verbose_name_plural,
+            })
+        
+        return formsets
+    
+    def _save_formsets(self, formsets):
+        all_valid = True
+        for formset_data in formsets:
+            formset = formset_data['formset']
+            if formset.is_valid():
+                formset.instance = self.object
+                formset.save()
+            else:
+                all_valid = False
+        return all_valid
+    
+    
+    def form_valid(self, form):
+        view_type = self.view_type
+        if view_type in ('create', 'update') and self.inline_formsets:
+            formsets = self._get_formsets(instance=self.object)
+            
+            self.object = form.save()
+            
+            if self._save_formsets(formsets):
+                return super().form_valid(form)
+            else:
+                return self.form_invalid(form)
+        
+        return super().form_valid(form)
 
     def get_queryset(self, **kwargs):
         queryset = super().get_queryset()
@@ -69,6 +128,12 @@ class _CRUDMixin:
             'search_query': self.request.GET.get('search', ''),
             'extra_actions': self.extra_actions,
         })
+        
+        view_type = self.view_type  
+        if view_type in ('create', 'update'):
+            formsets = self._get_formsets(instance=getattr(self, 'object', None))
+            context['formsets'] = formsets
+        
         return context
     
     def get_success_url(self):
@@ -98,6 +163,7 @@ class CRUDView(View):
     restricted_fields = []
     filter_fields = []
     search_fields = []
+    inline_formsets = []
     view_type = None
     
     def dispatch(self, request, *args, **kwargs):
@@ -141,6 +207,8 @@ class CRUDView(View):
             'filter_fields': self.filter_fields,
             'search_fields': self.search_fields,
             'extra_actions': self.extra_actions,
+            'inline_formsets': self.inline_formsets,
+            'view_type': view_type,
         }
         
         view = view_class.as_view(**view_kwargs)

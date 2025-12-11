@@ -25,3 +25,18 @@ class Author(models.Model):
     def __str__(self):
         return self.name
 
+class BookRequest(models.Model):
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='requests')
+    requester_name = models.CharField(max_length=100, verbose_name='Name')
+    requester_email = models.EmailField(verbose_name='Email')
+    request_date = models.DateField(auto_now_add=True, verbose_name='Request Date')
+    priority = models.IntegerField(default=1, verbose_name='Priority')
+    
+    class Meta:
+        verbose_name = 'Book Request'
+        verbose_name_plural = 'Book Requests'
+        ordering = ['priority', 'request_date']
+    
+    def __str__(self):
+        return f"{self.requester_name} - {self.book.title}"
+
