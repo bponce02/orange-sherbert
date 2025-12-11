@@ -1,5 +1,5 @@
 from orange_sherbert.view import CRUDView
-from .models import Book, Author, BookRequest
+from .models import Book, Author, BookRequest, RequestComment
 from django.views import View
 from django.shortcuts import redirect
 
@@ -28,11 +28,18 @@ class BookCRUDView(CRUDView):
     filter_fields = ['author', 'checked_out']
     search_fields = ['title', 'isbn']
     restricted_fields = {'ordered_from': 'can_view_ordered_from'}
-    
+
     inline_formsets = [
         {
             'model': BookRequest,
-            'fields': ['requester_name', 'requester_email', 'priority'],
+            'fields': ['requester_name', 'requester_email'],
+            'can_delete': True,
+        },
+        {
+            'model': RequestComment,
+            'fields': ['comment'],
+            'nested_under': BookRequest,
+            'extra': 2,
             'can_delete': True,
         }
     ]

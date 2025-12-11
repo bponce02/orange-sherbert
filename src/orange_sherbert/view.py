@@ -22,43 +22,117 @@ class _CRUDMixin:
         if not self.inline_formsets:
             return []
         
+        top_level_configs = [c for c in self.inline_formsets if not c.get('nested_under')]
+        nested_configs = {}
+        for c in self.inline_formsets:
+            if c.get('nested_under'):
+                parent_model = c['nested_under']
+                if parent_model not in nested_configs:
+                    nested_configs[parent_model] = []
+                nested_configs[parent_model].append(c)
+        
         formsets = []
-        for formset_config in self.inline_formsets:
-            FormSet = inlineformset_factory(
+        
+        for config in top_level_configs:
+            FormSetClass = inlineformset_factory(
                 self.model,
-                formset_config['model'],
-                fields=formset_config['fields'],
-                extra=1,
-                can_delete=formset_config.get('can_delete', True),
+                config['model'],
+                fields=config['fields'],
+                extra=config.get('extra', 1),
+                can_delete=config.get('can_delete', True),
             )
             
-            formset_name = formset_config['model'].__name__.lower() + '_formset'
+            prefix = config.get('name', config['model'].__name__.lower() + '_formset')
             
             if self.request.POST:
-                formset = FormSet(self.request.POST, instance=instance)
+                formset = FormSetClass(self.request.POST, instance=instance, prefix=prefix)
             else:
-                formset = FormSet(instance=instance)
+                formset = FormSetClass(instance=instance, prefix=prefix)
+            
+            if config['model'] in nested_configs:
+                for i, form in enumerate(formset):
+                    form.nested_formsets = []
+                    for nested_config in nested_configs[config['model']]:
+                        NestedFormSetClass = inlineformset_factory(
+                            config['model'],
+                            nested_config['model'],
+                            fields=nested_config['fields'],
+                            extra=nested_config.get('extra', 1),
+                            can_delete=nested_config.get('can_delete', True),
+                        )
+                        
+                        nested_prefix = f"{form.prefix}-{nested_config['model'].__name__.lower()}_formset"
+                        
+                        nested_instance = form.instance
+                        
+                        if self.request.POST:
+                            nested_formset = NestedFormSetClass(
+                                self.request.POST, 
+                                instance=nested_instance, 
+                                prefix=nested_prefix
+                            )
+                        else:
+                            nested_formset = NestedFormSetClass(
+                                instance=nested_instance, 
+                                prefix=nested_prefix
+                            )
+                        
+                        nested_formset.verbose_name = nested_config['model']._meta.verbose_name
+                        nested_formset.verbose_name_plural = nested_config['model']._meta.verbose_name_plural
+                        
+                        form.nested_formsets.append(nested_formset)
             
             formsets.append({
-                'name': formset_name,
+                'name': prefix,
                 'formset': formset,
-                'verbose_name': formset_config['model']._meta.verbose_name,
-                'verbose_name_plural': formset_config['model']._meta.verbose_name_plural,
+                'verbose_name': config['model']._meta.verbose_name,
+                'verbose_name_plural': config['model']._meta.verbose_name_plural,
+                'model': config['model'],
+                'config': config,
             })
         
         return formsets
     
     def _save_formsets(self, formsets):
+        def _save_formset(formset):
+            if not formset.is_valid():
+                return False
+            
+            formset.save()
+            
+            for form in formset:
+                if form.instance.pk and not form.cleaned_data.get('DELETE'):
+                    if hasattr(form, 'nested_formsets'):
+                        for nested_formset in form.nested_formsets:
+                            nested_formset.instance = form.instance
+                            if not _save_formset(nested_formset):
+                                return False
+            
+            return True
+        
         all_valid = True
+        
         for formset_data in formsets:
             formset = formset_data['formset']
-            if formset.is_valid():
-                formset.instance = self.object
-                formset.save()
-            else:
+            if not formset.is_valid():
                 all_valid = False
-        return all_valid
-    
+            
+            for form in formset:
+                if hasattr(form, 'nested_formsets'):
+                    for nested_formset in form.nested_formsets:
+                        if not nested_formset.is_valid():
+                            all_valid = False
+        
+        if not all_valid:
+            return False
+
+        for formset_data in formsets:
+            formset = formset_data['formset']
+            formset.instance = self.object
+            if not _save_formset(formset):
+                return False
+        
+        return True
     
     def form_valid(self, form):
         view_type = self.view_type
@@ -70,9 +144,12 @@ class _CRUDMixin:
             if self._save_formsets(formsets):
                 return super().form_valid(form)
             else:
-                return self.form_invalid(form)
+                return self.form_invalid(form, formsets=formsets)
         
         return super().form_valid(form)
+
+    def form_invalid(self, form, formsets=None):
+        return self.render_to_response(self.get_context_data(form=form, formsets=formsets))
 
     def get_queryset(self, **kwargs):
         queryset = super().get_queryset()
@@ -101,6 +178,9 @@ class _CRUDMixin:
         return queryset
         
     def get_context_data(self, **kwargs):
+        # Allow formsets to be passed in to avoid double-creation and preserve errors
+        formsets = kwargs.pop('formsets', None)
+        
         context = super().get_context_data(**kwargs)
         meta = self.model._meta
         object_data = []
@@ -131,7 +211,8 @@ class _CRUDMixin:
         
         view_type = self.view_type  
         if view_type in ('create', 'update'):
-            formsets = self._get_formsets(instance=getattr(self, 'object', None))
+            if formsets is None:
+                formsets = self._get_formsets(instance=getattr(self, 'object', None))
             context['formsets'] = formsets
         
         return context

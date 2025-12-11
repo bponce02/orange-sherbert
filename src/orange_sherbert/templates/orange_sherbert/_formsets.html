@@ -21,6 +21,37 @@
                         {% endfor %}
                     </div>
                     {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                    
+                    {# Render attached nested formsets #}
+                    {% if form.nested_formsets %}
+                        <div class="ml-6 mt-4 border-l-2 border-primary pl-4">
+                            {% for nested_formset in form.nested_formsets %}
+                                <div class="mb-4">
+                                    <h4 class="font-semibold text-sm mb-2">{{ nested_formset.verbose_name_plural }}</h4>
+                                    {{ nested_formset.management_form }}
+                                    
+                                    <div class="space-y-2">
+                                        {% for nested_form in nested_formset %}
+                                            <div class="border border-base-200 rounded p-3">
+                                                {% for field in nested_form.visible_fields %}
+                                                    <div class="form-control">
+                                                        <label class="label">
+                                                            <span class="label-text">{{ field.label }}</span>
+                                                        </label>
+                                                        {{ field }}
+                                                        {% if field.errors %}
+                                                            <span class="text-error text-sm">{{ field.errors.0 }}</span>
+                                                        {% endif %}
+                                                    </div>
+                                                {% endfor %}
+                                                {% for hidden in nested_form.hidden_fields %}{{ hidden }}{% endfor %}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
             {% endfor %}
         </div>
