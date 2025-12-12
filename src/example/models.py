@@ -9,6 +9,10 @@ class Book(models.Model):
     checked_out = models.BooleanField(default=False,verbose_name='Checked Out')
     ordered_from = models.CharField(max_length=100, blank=True, null=True, verbose_name='Ordered From')
     
+    @property
+    def formatted_price(self):
+        return f"${self.price:,}"
+
     class Meta:
         verbose_name = 'Book'
         verbose_name_plural = 'Books'

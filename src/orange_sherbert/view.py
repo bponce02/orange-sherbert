@@ -16,6 +16,7 @@ class _CRUDMixin:
     search_fields = []
     extra_actions = []
     inline_formsets = []
+    property_field_map = {}
     view_type = None
 
     def _get_formsets(self, instance=None):
@@ -172,7 +173,9 @@ class _CRUDMixin:
         sort_by = self.request.GET.get('sort_by')
         sort_dir = self.request.GET.get('sort_dir', 'asc')
         if sort_by:
-            order_field = f'-{sort_by}' if sort_dir == 'desc' else sort_by
+            property_field_map = getattr(self, 'property_field_map', {})
+            db_field = property_field_map.get(sort_by, sort_by)
+            order_field = f'-{db_field}' if sort_dir == 'desc' else db_field
             queryset = queryset.order_by(order_field)
         
         return queryset
@@ -245,6 +248,7 @@ class CRUDView(View):
     filter_fields = []
     search_fields = []
     inline_formsets = []
+    property_field_map = {}
     view_type = None
     
     def dispatch(self, request, *args, **kwargs):
@@ -289,6 +293,7 @@ class CRUDView(View):
             'search_fields': self.search_fields,
             'extra_actions': self.extra_actions,
             'inline_formsets': self.inline_formsets,
+            'property_field_map': self.property_field_map,
             'view_type': view_type,
         }
         

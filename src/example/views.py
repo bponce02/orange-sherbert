@@ -24,10 +24,19 @@ class CheckInView(View):
 
 class BookCRUDView(CRUDView):
     model = Book
-    fields = '__all__'
+    fields = {
+        'title': 'Title',
+        'author': 'Author',
+        'isbn': 'ISBN',
+        'formatted_price': 'Price',
+        'pub_date': 'Publication Date',
+        'checked_out': 'Checked Out',
+        'ordered_from': 'Ordered From',
+    }
     filter_fields = ['author', 'checked_out']
     search_fields = ['title', 'isbn']
     restricted_fields = {'ordered_from': 'can_view_ordered_from'}
+    property_field_map = {'formatted_price': 'price'}
 
     inline_formsets = [
         {
