@@ -38,7 +38,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_htmx',
-    'template_partials',
     'orange_sherbert',
     'example',
 ]
