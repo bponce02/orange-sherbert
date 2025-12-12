@@ -250,7 +250,6 @@ class CRUDView(View):
     inline_formsets = []
     property_field_map = {}
     view_type = None
-    
     list_template_name = 'orange_sherbert/list.html'
     detail_template_name = 'orange_sherbert/detail.html'
     create_template_name = 'orange_sherbert/create.html'
@@ -313,6 +312,17 @@ class CRUDView(View):
             'property_field_map': self.property_field_map,
             'view_type': view_type,
         }
+
+        if view_type == 'list':
+            view_kwargs['template_name'] = self.list_template_name
+        elif view_type == 'detail':
+            view_kwargs['template_name'] = self.detail_template_name
+        elif view_type == 'create':
+            view_kwargs['template_name'] = self.create_template_name
+        elif view_type == 'update':
+            view_kwargs['template_name'] = self.update_template_name
+        elif view_type == 'delete':
+            view_kwargs['template_name'] = self.delete_template_name
         
         view = view_class.as_view(**view_kwargs)
         return view(request, *args, **kwargs)
