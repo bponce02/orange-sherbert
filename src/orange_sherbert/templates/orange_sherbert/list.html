@@ -12,106 +12,122 @@
                 <a href="{% url model_name|add:'-create' %}" class="btn btn-primary">Create New</a>
             </div>
             
-            <form method="get" action="" autocomplete="off">
-                {% if request.GET.sort_by %}
-                <input type="hidden" name="sort_by" value="{{ request.GET.sort_by }}" />
-                <input type="hidden" name="sort_dir" value="{{ request.GET.sort_dir }}" />
-                {% endif %}
-
-                <!-- Search Box -->
-                {% if search_fields %}
-                <div class="my-4">
-                    <div class="flex gap-2">
-                        <input 
-                            type="text" 
-                            name="search" 
-                            value="{{ search_query }}" 
-                            placeholder="Search {{ verbose_name_plural|lower }}..." 
-                            class="input input-bordered flex-1"
-                        />
-                        {% if search_query %}
-                        <a href="?" class="btn btn-ghost">Clear</a>
-                        {% endif %}
-                    </div>
+            <!-- Search Box -->
+            {% if search_fields %}
+            <div class="my-4">
+                <div class="flex gap-2">
+                    <input 
+                        type="search" 
+                        name="search" 
+                        id="search-input"
+                        value="{{ search_query }}" 
+                        placeholder="Search {{ verbose_name_plural|lower }}..." 
+                        class="input input-bordered flex-1"
+                        hx-get="." 
+                        hx-trigger="input changed delay:500ms, search" 
+                        hx-target="#results-table"
+                        hx-select="#results-table"
+                        hx-swap="outerHTML"
+                        hx-push-url="true"
+                        hx-include="#search-input, #filter-form select, #sort-by-input, #sort-dir-input"
+                    />
+                    {% if search_query %}
+                    <a href="?" class="btn btn-ghost">Clear</a>
+                    {% endif %}
                 </div>
-                {% endif %}
-                
-                <!-- Filter Form -->
-                {% if filter_fields and object_list %}
-                <div class="flex flex-wrap gap-2 my-4 p-4 bg-base-200 rounded-lg" id="filter-form">
-                    {% for field in filter_fields %}
-                        {% get_field_options object_list field as options %}
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text font-semibold">{% get_verbose_name object_list.0 field %}</span>
-                            </label>
-                            <select name="{{ field }}" class="select select-bordered select-sm w-full max-w-xs" onchange="this.form.submit()">
-                                <option value="">All</option>
-                                {% for option in options %}
-                                    <option value="{{ option }}" {% is_selected option request field %}>
-                                        {{ option }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    {% endfor %}
-                    
-                    <div class="form-control self-end">
-                        <a href="?" class="btn btn-ghost btn-sm">Clear All</a>
-                    </div>
-                </div>
-                {% endif %}
-            </form>
+            </div>
+            {% endif %}
             
-            <table class="table">
-                <thead>
-                    <tr>
-                        {% for field_name, field_label in fields.items %}
-                            <th class="cursor-pointer hover:bg-base-200 transition-colors">
-                                <a href="{% sort_url field_name %}" class="flex items-center gap-1 w-full h-full text-inherit no-underline">
-                                    {{ field_label }}
-                                    {% if request.GET.sort_by == field_name %}
-                                        {% if request.GET.sort_dir == 'desc' %}
-                                            <span>▼</span>
-                                        {% else %}
-                                            <span>▲</span>
-                                        {% endif %}
-                                    {% endif %}
-                                </a>
-                            </th>
-                        {% endfor %}
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in object_data %}
-                        <tr>
-                            {% for field_name, verbose_name, value in item.fields %}
-                                <td>{{ value }}</td>
+            <!-- Filter Form -->
+            {% if filter_fields and object_list %}
+            <div class="flex flex-wrap gap-2 my-4 p-4 bg-base-200 rounded-lg" id="filter-form">
+                {% for field in filter_fields %}
+                    {% get_field_options object_list field as options %}
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">{% get_verbose_name object_list.0 field %}</span>
+                        </label>
+                        <select name="{{ field }}" class="select select-bordered select-sm w-full max-w-xs" 
+                        hx-get="." 
+                        hx-trigger="change" 
+                        hx-target="#results-table"
+                        hx-select="#results-table"
+                        hx-swap="outerHTML"
+                        hx-push-url="true"
+                        hx-include="#search-input, #filter-form select, #sort-by-input, #sort-dir-input">
+                            <option value="">All</option>
+                            {% for option in options %}
+                                <option value="{{ option }}" {% is_selected option request field %}>
+                                    {{ option }}
+                                </option>
                             {% endfor %}
-                            <td class="min-w-40 max-w-40">
-                                <a href="{% url model_name|add:'-detail' item.object.pk %}" class="btn btn-sm btn-ghost">View</a>
-                                <a href="{% url model_name|add:'-update' item.object.pk %}" class="btn btn-sm btn-ghost">Edit</a>
-                                <a href="{% url model_name|add:'-delete' item.object.pk %}" class="btn btn-sm btn-ghost">Delete</a>
-                                {% for action in extra_actions %}
-                                    {% if action.method == 'GET' %}
-                                        <a href="{% url model_name|add:'-'|add:action.name item.object.pk %}" class="btn btn-sm btn-primary">{{ action.label }}</a>
-                                    {% else %}
-                                        <form method="post" action="{% url model_name|add:'-'|add:action.name item.object.pk %}" style="display: inline;">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-sm btn-primary">{{ action.label }}</button>
-                                        </form>
-                                    {% endif %}
-                                {% endfor %}
-                            </td>
-                        </tr>
-                    {% empty %}
+                        </select>
+                    </div>
+                {% endfor %}
+                
+                <div class="form-control self-end">
+                    <a href="?" class="btn btn-ghost btn-sm">Clear All</a>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="overflow-x-auto" id="results-table">
+                <input type="hidden" name="sort_by" id="sort-by-input" value="{{ request.GET.sort_by }}" />
+                <input type="hidden" name="sort_dir" id="sort-dir-input" value="{{ request.GET.sort_dir }}" />
+                <table class="table w-full">
+                    <thead>
                         <tr>
-                            <td colspan="10" class="text-center">No items found.</td>
+                            {% for field_name, field_label in fields.items %}
+                                <th>
+                                    <button type="button"
+                                    hx-get="."
+                                    hx-vals='{"sort_by": "{{ field_name }}", "sort_dir": "{% if request.GET.sort_by == field_name and request.GET.sort_dir == "asc" %}desc{% else %}asc{% endif %}"}'
+                                    hx-target="#results-table"
+                                    hx-select="#results-table"
+                                    hx-swap="outerHTML"
+                                    hx-push-url="true"
+                                    hx-include="#search-input, #filter-form select, #sort-by-input, #sort-dir-input"
+                                    class="flex items-center gap-1 cursor-pointer hover:text-primary btn btn-ghost btn-sm normal-case">
+                                        {{ field_label }}
+                                        {% if request.GET.sort_by == field_name %}
+                                            {% if request.GET.sort_dir == 'desc' %}↓{% else %}↑{% endif %}
+                                        {% endif %}
+                                    </button>
+                                </th>
+                            {% endfor %}
+                            <th>Actions</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody id="search-results">
+                        {% for item in object_data %}
+                            <tr>
+                                {% for field_name, verbose_name, value in item.fields %}
+                                    <td>{{ value }}</td>
+                                {% endfor %}
+                                <td class="min-w-40 max-w-40">
+                                    <a href="{% url model_name|add:'-detail' item.object.pk %}" class="btn btn-sm btn-ghost">View</a>
+                                    <a href="{% url model_name|add:'-update' item.object.pk %}" class="btn btn-sm btn-ghost">Edit</a>
+                                    <a href="{% url model_name|add:'-delete' item.object.pk %}" class="btn btn-sm btn-ghost">Delete</a>
+                                    {% for action in extra_actions %}
+                                        {% if action.method == 'GET' %}
+                                            <a href="{% url model_name|add:'-'|add:action.name item.object.pk %}" class="btn btn-sm btn-primary">{{ action.label }}</a>
+                                        {% else %}
+                                            <form method="post" action="{% url model_name|add:'-'|add:action.name item.object.pk %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-primary">{{ action.label }}</button>
+                                            </form>
+                                        {% endif %}
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="10" class="text-center">No items found.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
