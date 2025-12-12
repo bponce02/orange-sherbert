@@ -224,20 +224,20 @@ class _CRUDMixin:
         model_name = self.model._meta.model_name
         return reverse(f'{model_name}-list')
 
-class _CRUDListView(_CRUDMixin, ListView):
-    template_name = 'orange_sherbert/list.html'
+class _CRUDListView(_CRUDMixin, ListView, template_name='orange_sherbert/list.html'):
+    pass
 
-class _CRUDDetailView(_CRUDMixin, DetailView):
-    template_name = 'orange_sherbert/detail.html'
+class _CRUDDetailView(_CRUDMixin, DetailView, template_name='orange_sherbert/detail.html'):
+    pass
 
-class _CRUDCreateView(_CRUDMixin, CreateView):
-    template_name = 'orange_sherbert/create.html'
+class _CRUDCreateView(_CRUDMixin, CreateView, template_name='orange_sherbert/create.html'):
+    pass
 
-class _CRUDUpdateView(_CRUDMixin, UpdateView):
-    template_name = 'orange_sherbert/update.html'
+class _CRUDUpdateView(_CRUDMixin, UpdateView, template_name='orange_sherbert/update.html'):
+    pass
 
-class _CRUDDeleteView(_CRUDMixin, DeleteView):
-    template_name = 'orange_sherbert/delete.html'
+class _CRUDDeleteView(_CRUDMixin, DeleteView, template_name='orange_sherbert/delete.html'):
+    pass
 
 class CRUDView(View):
     model = None
@@ -250,6 +250,12 @@ class CRUDView(View):
     inline_formsets = []
     property_field_map = {}
     view_type = None
+    
+    list_template_name = 'orange_sherbert/list.html'
+    detail_template_name = 'orange_sherbert/detail.html'
+    create_template_name = 'orange_sherbert/create.html'
+    update_template_name = 'orange_sherbert/update.html'
+    delete_template_name = 'orange_sherbert/delete.html'
     
     def dispatch(self, request, *args, **kwargs):
         view_type = getattr(self, 'view_type', 'list')
@@ -323,11 +329,11 @@ class CRUDView(View):
         app_name = cls.model._meta.app_label
 
         urls = [
-            path(f'{app_name}/{model_name}/', cls.as_view(view_type='list'), name=f'{model_name}-list'),
-            path(f'{app_name}/{model_name}/create/', cls.as_view(view_type='create'), name=f'{model_name}-create'),
-            path(f'{app_name}/{model_name}/<int:pk>/', cls.as_view(view_type='detail'), name=f'{model_name}-detail'),
-            path(f'{app_name}/{model_name}/<int:pk>/update/', cls.as_view(view_type='update'), name=f'{model_name}-update'),
-            path(f'{app_name}/{model_name}/<int:pk>/delete/', cls.as_view(view_type='delete'), name=f'{model_name}-delete'),
+            path(f'{app_name}/{model_name}/', cls.as_view(view_type='list', template_name=cls.list_template_name), name=f'{model_name}-list'),
+            path(f'{app_name}/{model_name}/create/', cls.as_view(view_type='create', template_name=cls.create_template_name), name=f'{model_name}-create'),
+            path(f'{app_name}/{model_name}/<int:pk>/', cls.as_view(view_type='detail', template_name=cls.detail_template_name), name=f'{model_name}-detail'),
+            path(f'{app_name}/{model_name}/<int:pk>/update/', cls.as_view(view_type='update', template_name=cls.update_template_name), name=f'{model_name}-update'),
+            path(f'{app_name}/{model_name}/<int:pk>/delete/', cls.as_view(view_type='delete', template_name=cls.delete_template_name), name=f'{model_name}-delete'),
         ]
         
         if cls.extra_actions:
