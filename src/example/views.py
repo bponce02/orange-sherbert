@@ -34,13 +34,14 @@ class BookCRUDView(CRUDView):
             'model': BookRequest,
             'fields': ['requester_name', 'requester_email'],
             'can_delete': True,
-        },
-        {
-            'model': RequestComment,
-            'fields': ['comment'],
-            'nested_under': BookRequest,
-            'extra': 2,
-            'can_delete': True,
+            'inline_formsets': [
+                {
+                    'model': RequestComment,
+                    'fields': ['comment'],
+                    'extra': 1,
+                    'can_delete': True,
+                }
+            ]
         }
     ]
 

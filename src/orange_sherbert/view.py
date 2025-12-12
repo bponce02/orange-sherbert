@@ -22,18 +22,9 @@ class _CRUDMixin:
         if not self.inline_formsets:
             return []
         
-        top_level_configs = [c for c in self.inline_formsets if not c.get('nested_under')]
-        nested_configs = {}
-        for c in self.inline_formsets:
-            if c.get('nested_under'):
-                parent_model = c['nested_under']
-                if parent_model not in nested_configs:
-                    nested_configs[parent_model] = []
-                nested_configs[parent_model].append(c)
-        
         formsets = []
         
-        for config in top_level_configs:
+        for config in self.inline_formsets:
             FormSetClass = inlineformset_factory(
                 self.model,
                 config['model'],
@@ -49,10 +40,11 @@ class _CRUDMixin:
             else:
                 formset = FormSetClass(instance=instance, prefix=prefix)
             
-            if config['model'] in nested_configs:
+            child_configs = config.get('inline_formsets', [])
+            if child_configs:
                 for i, form in enumerate(formset):
                     form.nested_formsets = []
-                    for nested_config in nested_configs[config['model']]:
+                    for nested_config in child_configs:
                         NestedFormSetClass = inlineformset_factory(
                             config['model'],
                             nested_config['model'],
@@ -93,35 +85,33 @@ class _CRUDMixin:
         
         return formsets
     
-    def _save_formsets(self, formsets):
-        def _save_formset(formset):
-            if not formset.is_valid():
-                return False
+    def _validate_formset_recursive(self, formset):
+        if not formset.is_valid():
+            return False
             
-            formset.save()
-            
-            for form in formset:
-                if form.instance.pk and not form.cleaned_data.get('DELETE'):
-                    if hasattr(form, 'nested_formsets'):
-                        for nested_formset in form.nested_formsets:
-                            nested_formset.instance = form.instance
-                            if not _save_formset(nested_formset):
-                                return False
-            
-            return True
-        
         all_valid = True
+        for form in formset:
+            if hasattr(form, 'nested_formsets'):
+                for nested_formset in form.nested_formsets:
+                    if not self._validate_formset_recursive(nested_formset):
+                        all_valid = False
+        return all_valid
+
+    def _save_formset_recursive(self, formset):
+        formset.save()
         
-        for formset_data in formsets:
-            formset = formset_data['formset']
-            if not formset.is_valid():
-                all_valid = False
-            
-            for form in formset:
+        for form in formset:
+            if form.instance.pk and not form.cleaned_data.get('DELETE'):
                 if hasattr(form, 'nested_formsets'):
                     for nested_formset in form.nested_formsets:
-                        if not nested_formset.is_valid():
-                            all_valid = False
+                        nested_formset.instance = form.instance
+                        self._save_formset_recursive(nested_formset)
+    
+    def _save_formsets(self, formsets):
+        all_valid = True
+        for formset_data in formsets:
+            if not self._validate_formset_recursive(formset_data['formset']):
+                all_valid = False
         
         if not all_valid:
             return False
@@ -129,8 +119,7 @@ class _CRUDMixin:
         for formset_data in formsets:
             formset = formset_data['formset']
             formset.instance = self.object
-            if not _save_formset(formset):
-                return False
+            self._save_formset_recursive(formset)
         
         return True
     
@@ -212,7 +201,7 @@ class _CRUDMixin:
         view_type = self.view_type  
         if view_type in ('create', 'update'):
             if formsets is None:
-                formsets = self._get_formsets(instance=getattr(self, 'object', None))
+                formsets = self._get_formsets(self.object)
             context['formsets'] = formsets
         
         return context
