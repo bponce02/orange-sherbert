@@ -286,9 +286,20 @@ class CRUDView(View):
         if self.enforce_model_permissions and not request.user.has_perm(permission):
             return HttpResponseForbidden("You do not have permission to perform this action.")
         
+        # For create/update views, replace properties with their underlying model fields
+        form_fields = self.fields
+        if view_type in ('create', 'update') and self.property_field_map:
+            form_fields = {}
+            for k, v in self.fields.items():
+                if k in self.property_field_map:
+                    db_field = self.property_field_map[k]
+                    form_fields[db_field] = v
+                else:
+                    form_fields[k] = v
+        
         view_kwargs = {
             'model': self.model,
-            'fields': self.fields,
+            'fields': form_fields if view_type in ('create', 'update') else self.fields,
             'filter_fields': self.filter_fields,
             'search_fields': self.search_fields,
             'extra_actions': self.extra_actions,
