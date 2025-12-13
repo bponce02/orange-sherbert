@@ -31,7 +31,16 @@ class BookCRUDView(CRUDView):
         'formatted_price': 'Price',
         'pub_date': 'Publication Date',
         'checked_out': 'Checked Out',
+    }
+    form_fields = {
+        'title': 'Title',
+        'author': 'Author',
+        'isbn': 'ISBN',
+        'price': 'Price',
+        'pub_date': 'Publication Date',
+        'checked_out': 'Checked Out',
         'ordered_from': 'Ordered From',
+        'location': 'Location',
     }
     filter_fields = ['author', 'checked_out']
     search_fields = ['title', 'isbn']
@@ -48,7 +57,7 @@ class BookCRUDView(CRUDView):
             'model': RequestComment,
             'fields': ['comment'],
             'nested_under': BookRequest,
-            'extra': 2,
+            'extra': 1,
             'can_delete': True,
         }
     ]

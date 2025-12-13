@@ -12,6 +12,7 @@ from django.forms import inlineformset_factory
 
 class _CRUDMixin:
     fields = None
+    form_fields = None
     filter_fields = []
     search_fields = []
     extra_actions = []
@@ -218,6 +219,14 @@ class _CRUDMixin:
                 formsets = self._get_formsets(instance=getattr(self, 'object', None))
             context['formsets'] = formsets
         
+        if view_type == 'detail' and 'object' in context:
+            obj = context['object']
+            detail_fields = []
+            for field_name, verbose_name in self.fields.items():
+                value = getattr(obj, field_name, '')
+                detail_fields.append((field_name, verbose_name, value))
+            context['detail_fields'] = detail_fields
+        
         return context
     
     def get_success_url(self):
@@ -243,6 +252,7 @@ class CRUDView(View):
     model = None
     enforce_model_permissions = False
     fields = []
+    form_fields = []
     extra_actions = []
     restricted_fields = []
     filter_fields = []
@@ -292,25 +302,27 @@ class CRUDView(View):
             return HttpResponseForbidden("You do not have permission to perform this action.")
         
         # For create/update views, replace properties with their underlying model fields
-        form_fields = self.fields
+        form_fields = self.form_fields if self.form_fields else self.fields
         if view_type in ('create', 'update') and self.property_field_map:
-            form_fields = {}
-            for k, v in self.fields.items():
+            resolved_form_fields = {}
+            for k, v in form_fields.items():
                 if k in self.property_field_map:
                     db_field = self.property_field_map[k]
-                    form_fields[db_field] = v
+                    resolved_form_fields[db_field] = v
                 else:
-                    form_fields[k] = v
+                    resolved_form_fields[k] = v
+            form_fields = resolved_form_fields
         
         view_kwargs = {
             'model': self.model,
-            'fields': form_fields if view_type in ('create', 'update') else self.fields,
+            'fields': form_fields if view_type in ('create', 'update', 'detail') else self.fields,
             'filter_fields': self.filter_fields,
             'search_fields': self.search_fields,
             'extra_actions': self.extra_actions,
             'inline_formsets': self.inline_formsets,
             'property_field_map': self.property_field_map,
             'view_type': view_type,
+            'form_fields': self.form_fields,
         }
 
         if view_type == 'list':
