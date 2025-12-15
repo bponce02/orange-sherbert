@@ -19,6 +19,7 @@ class _CRUDMixin:
     inline_formsets = []
     property_field_map = {}
     view_type = None
+    url_namespace = None
 
     def _get_formsets(self, instance=None):
         if not self.inline_formsets:
@@ -201,6 +202,7 @@ class _CRUDMixin:
                     'fields': field_tuples,
                 })
         
+        url_namespace = f'{self.url_namespace}:' if self.url_namespace else ''
         context.update({
             'model_name': meta.model_name,
             'verbose_name': meta.verbose_name,
@@ -211,6 +213,7 @@ class _CRUDMixin:
             'search_fields': self.search_fields,
             'search_query': self.request.GET.get('search', ''),
             'extra_actions': self.extra_actions,
+            'url_namespace': url_namespace,
         })
         
         view_type = self.view_type  
@@ -260,7 +263,7 @@ class CRUDView(View):
     inline_formsets = []
     property_field_map = {}
     view_type = None
-    url_prefix = None
+    url_namespace = None
     list_template_name = 'orange_sherbert/list.html'
     detail_template_name = 'orange_sherbert/detail.html'
     create_template_name = 'orange_sherbert/create.html'
@@ -324,6 +327,7 @@ class CRUDView(View):
             'property_field_map': self.property_field_map,
             'view_type': view_type,
             'form_fields': self.form_fields,
+            'url_namespace': self.url_namespace,
         }
 
         if view_type == 'list':
@@ -349,18 +353,13 @@ class CRUDView(View):
     @classmethod
     def get_urls(cls):
         model_name = cls.get_model_name()
-        
-        if cls.url_prefix is not None:
-            base = f'{cls.url_prefix}/{model_name}' if cls.url_prefix else model_name
-        else:
-            base = model_name
 
         urls = [
-            path(f'{base}/', cls.as_view(view_type='list'), name=f'{model_name}-list'),
-            path(f'{base}/create/', cls.as_view(view_type='create'), name=f'{model_name}-create'),
-            path(f'{base}/<int:pk>/', cls.as_view(view_type='detail'), name=f'{model_name}-detail'),
-            path(f'{base}/<int:pk>/update/', cls.as_view(view_type='update'), name=f'{model_name}-update'),
-            path(f'{base}/<int:pk>/delete/', cls.as_view(view_type='delete'), name=f'{model_name}-delete'),
+            path(f'{model_name}/', cls.as_view(view_type='list'), name=f'{model_name}-list'),
+            path(f'{model_name}/create/', cls.as_view(view_type='create'), name=f'{model_name}-create'),
+            path(f'{model_name}/<int:pk>/', cls.as_view(view_type='detail'), name=f'{model_name}-detail'),
+            path(f'{model_name}/<int:pk>/update/', cls.as_view(view_type='update'), name=f'{model_name}-update'),
+            path(f'{model_name}/<int:pk>/delete/', cls.as_view(view_type='delete'), name=f'{model_name}-delete'),
         ]
         
         if cls.extra_actions:
@@ -369,7 +368,7 @@ class CRUDView(View):
                 view_class = action['view']
                 
                 url_name = f"{model_name}-{action_name}"
-                url_path = f'{base}/<int:pk>/{action_name}/'
+                url_path = f'{model_name}/<int:pk>/{action_name}/'
                 urls.append(path(url_path, view_class.as_view(), name=url_name))
         
         return urls

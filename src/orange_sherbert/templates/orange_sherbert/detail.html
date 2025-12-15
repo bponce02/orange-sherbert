@@ -23,9 +23,9 @@
             </div>
             
             <div class="card-actions justify-end gap-2">
-                <a href="{% url model_name|add:'-list' %}" class="btn btn-ghost">Back to List</a>
-                <a href="{% url model_name|add:'-update' object.pk %}" class="btn btn-primary">Edit</a>
-                <a href="{% url model_name|add:'-delete' object.pk %}" class="btn btn-error">Delete</a>
+                <a href="{% url url_namespace|add:model_name|add:'-list' %}" class="btn btn-ghost">Back to List</a>
+                <a href="{% url url_namespace|add:model_name|add:'-update' object.pk %}" class="btn btn-primary">Edit</a>
+                <a href="{% url url_namespace|add:model_name|add:'-delete' object.pk %}" class="btn btn-error">Delete</a>
             </div>
         </div>
     </div>
