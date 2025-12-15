@@ -13,7 +13,7 @@ from django.forms import inlineformset_factory
 class _CRUDMixin:
     fields = None
     form_fields = None
-    filter_fields = []
+    filter_fields = {}
     search_fields = []
     extra_actions = []
     inline_formsets = []
@@ -160,9 +160,10 @@ class _CRUDMixin:
         filter_fields = self.filter_fields
         if filter_fields:
             for field in filter_fields:
-                field_value = self.request.GET.get(field)
+                field_name = field if isinstance(filter_fields, list) else field
+                field_value = self.request.GET.get(field_name)
                 if field_value:
-                    queryset = queryset.filter(**{field: field_value})
+                    queryset = queryset.filter(**{field_name: field_value})
         
         search_query = self.request.GET.get('search', '').strip()
         search_fields = self.search_fields
@@ -259,7 +260,7 @@ class CRUDView(View):
     form_fields = []
     extra_actions = []
     restricted_fields = []
-    filter_fields = []
+    filter_fields = {}
     search_fields = []
     inline_formsets = []
     property_field_map = {}

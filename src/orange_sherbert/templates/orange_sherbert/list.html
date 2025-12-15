@@ -41,13 +41,13 @@
             <!-- Filter Form -->
             {% if filter_fields and object_list %}
             <div class="flex flex-wrap gap-2 my-4 p-4 bg-base-200 rounded-lg" id="filter-form">
-                {% for field in filter_fields %}
-                    {% get_field_options object_list field as options %}
+                {% for field_name, field_label in filter_fields.items %}
+                    {% get_field_options object_list field_name as options %}
                     <div class="form-control">
                         <label class="label">
-                            <span class="label-text font-semibold">{% get_verbose_name object_list.0 field %}</span>
+                            <span class="label-text font-semibold">{{ field_label }}</span>
                         </label>
-                        <select name="{{ field }}" class="select select-bordered select-sm w-full max-w-xs" 
+                        <select name="{{ field_name }}" class="select select-bordered select-sm w-full max-w-xs" 
                         hx-get="." 
                         hx-trigger="change" 
                         hx-target="#results-table"
@@ -57,7 +57,7 @@
                         hx-include="#search-input, #filter-form select, #sort-by-input, #sort-dir-input">
                             <option value="">All</option>
                             {% for option in options %}
-                                <option value="{{ option }}" {% is_selected option request field %}>
+                                <option value="{{ option }}" {% is_selected option request field_name %}>
                                     {{ option }}
                                 </option>
                             {% endfor %}
