@@ -6,8 +6,10 @@ from django.views.generic import DeleteView
 from django.views import View
 from django.urls import path, reverse
 from django.db.models import Q
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpResponse
 from django.forms import inlineformset_factory
+from django.template.loader import render_to_string
+from django.apps import apps
 
 
 class _CRUDMixin:
@@ -82,8 +84,19 @@ class _CRUDMixin:
                         
                         nested_formset.verbose_name = nested_config['model']._meta.verbose_name
                         nested_formset.verbose_name_plural = nested_config['model']._meta.verbose_name_plural
+                        nested_formset.parent_model_label = f"{config['model']._meta.app_label}.{config['model']._meta.model_name}"
+                        nested_formset.child_model_label = f"{nested_config['model']._meta.app_label}.{nested_config['model']._meta.model_name}"
+                        nested_formset.config = nested_config
                         
                         form.nested_formsets.append(nested_formset)
+            
+            nested_info = None
+            if config['model'] in nested_configs:
+                nc = nested_configs[config['model']][0]
+                nested_info = {
+                    'model_label': f"{nc['model']._meta.app_label}.{nc['model']._meta.model_name}",
+                    'fields': nc['fields'],
+                }
             
             formsets.append({
                 'name': prefix,
@@ -92,6 +105,9 @@ class _CRUDMixin:
                 'verbose_name_plural': config['model']._meta.verbose_name_plural,
                 'model': config['model'],
                 'config': config,
+                'parent_model_label': f"{self.model._meta.app_label}.{self.model._meta.model_name}",
+                'child_model_label': f"{config['model']._meta.app_label}.{config['model']._meta.model_name}",
+                'nested_info': nested_info,
             })
         
         return formsets
@@ -253,6 +269,84 @@ class _CRUDUpdateView(_CRUDMixin, UpdateView):
 class _CRUDDeleteView(_CRUDMixin, DeleteView):
     template_name = 'orange_sherbert/delete.html'
 
+
+class FormsetRowView(View):
+    """HTMX endpoint for adding new formset rows dynamically."""
+    
+    def get(self, request, *args, **kwargs):
+        parent_model_name = request.GET.get('parent_model')
+        child_model_name = request.GET.get('child_model')
+        form_index = request.GET.get('form_index', '0')
+        prefix = request.GET.get('prefix', '')
+        fields = request.GET.get('fields', '').split(',')
+        can_delete = request.GET.get('can_delete', 'true').lower() in ('true', '1', 'yes')
+        nested_model_name = request.GET.get('nested_model', '')
+        nested_fields = request.GET.get('nested_fields', '')
+        url_namespace = request.GET.get('url_namespace', '')
+        
+        if not parent_model_name or not child_model_name:
+            return HttpResponse("Missing model parameters", status=400)
+        
+        try:
+            parent_model = apps.get_model(parent_model_name)
+            child_model = apps.get_model(child_model_name)
+        except LookupError:
+            return HttpResponse("Invalid model", status=400)
+        
+        FormSetClass = inlineformset_factory(
+            parent_model,
+            child_model,
+            fields=fields,
+            extra=1,
+            can_delete=can_delete,
+        )
+        
+        formset = FormSetClass(prefix=prefix)
+        form = formset.empty_form
+        
+        form.prefix = f"{prefix}-{form_index}"
+        
+        nested_formsets = []
+        if nested_model_name and nested_fields:
+            try:
+                nested_model = apps.get_model(nested_model_name)
+                nested_fields_list = nested_fields.split(',')
+                
+                NestedFormSetClass = inlineformset_factory(
+                    child_model,
+                    nested_model,
+                    fields=nested_fields_list,
+                    extra=1,
+                    can_delete=True,
+                )
+                
+                nested_prefix = f"{form.prefix}-{nested_model.__name__.lower()}_formset"
+                nested_formset = NestedFormSetClass(prefix=nested_prefix)
+                
+                nested_formset.verbose_name = nested_model._meta.verbose_name
+                nested_formset.verbose_name_plural = nested_model._meta.verbose_name_plural
+                nested_formset.parent_model_label = f"{child_model._meta.app_label}.{child_model._meta.model_name}"
+                nested_formset.child_model_label = f"{nested_model._meta.app_label}.{nested_model._meta.model_name}"
+                nested_formset.config = {'fields': nested_fields_list, 'can_delete': True}
+                
+                nested_formsets.append(nested_formset)
+            except LookupError:
+                pass
+        
+        form.nested_formsets = nested_formsets
+        
+        html = render_to_string('orange_sherbert/_formset_row.html', {
+            'form': form,
+            'form_index': int(form_index) + 1,
+            'verbose_name': child_model._meta.verbose_name,
+            'can_delete': can_delete,
+            'formset_prefix': prefix,
+            'url_namespace': url_namespace,
+        })
+        
+        return HttpResponse(html)
+
+
 class CRUDView(View):
     model = None
     enforce_model_permissions = False
@@ -372,5 +466,7 @@ class CRUDView(View):
                 url_name = f"{model_name}-{action_name}"
                 url_path = f'{model_name}/<int:pk>/{action_name}/'
                 urls.append(path(url_path, view_class.as_view(), name=url_name))
+        
+        urls.append(path('formset-row/', FormsetRowView.as_view(), name='formset-row'))
         
         return urls

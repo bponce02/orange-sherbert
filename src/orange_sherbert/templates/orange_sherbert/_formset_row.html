@@ -1,0 +1,83 @@
+<div class="formset-row border border-base-300 rounded-lg p-4" id="{{ form.prefix }}">
+    <div class="flex justify-between items-start mb-2">
+        <span class="text-sm text-base-content/60">{{ verbose_name }} #{{ form_index }}</span>
+        {% if can_delete %}
+            <button type="button" 
+                    class="btn btn-ghost btn-xs text-error"
+                    onclick="this.closest('.formset-row').remove(); updateManagementForm('{{ formset_prefix }}');">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Remove
+            </button>
+        {% endif %}
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for field in form.visible_fields %}
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">{{ field.label }}</span>
+                </label>
+                {{ field }}
+                {% if field.errors %}
+                    <span class="text-error text-sm">{{ field.errors.0 }}</span>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+    
+    {# Render attached nested formsets #}
+    {% if form.nested_formsets %}
+        <div class="ml-6 mt-4 border-l-2 border-primary pl-4">
+            {% for nested_formset in form.nested_formsets %}
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-semibold text-sm">{{ nested_formset.verbose_name_plural }}</h4>
+                        <button type="button" 
+                                class="btn btn-xs btn-outline btn-primary"
+                                data-url="{% url url_namespace|add:'formset-row' %}?parent_model={{ nested_formset.parent_model_label }}&child_model={{ nested_formset.child_model_label }}&prefix={{ nested_formset.prefix }}&fields={% for f in nested_formset.config.fields %}{{ f }}{% if not forloop.last %},{% endif %}{% endfor %}&can_delete=true&url_namespace={{ url_namespace }}"
+                                data-prefix="{{ nested_formset.prefix }}"
+                                onclick="addFormsetRow(this);">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add
+                        </button>
+                    </div>
+                    {{ nested_formset.management_form }}
+                    
+                    <div class="space-y-2" id="{{ nested_formset.prefix }}-container">
+                        {% for nested_form in nested_formset %}
+                            <div class="formset-row border border-base-200 rounded p-3" id="{{ nested_form.prefix }}">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="text-xs text-base-content/50">{{ nested_formset.verbose_name }} #{{ forloop.counter }}</span>
+                                    <button type="button" 
+                                            class="btn btn-ghost btn-xs text-error"
+                                            onclick="this.closest('.formset-row').remove(); updateManagementForm('{{ nested_formset.prefix }}');">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                        Remove
+                                    </button>
+                                </div>
+                                {% for field in nested_form.visible_fields %}
+                                    <div class="form-control">
+                                        <label class="label">
+                                            <span class="label-text">{{ field.label }}</span>
+                                        </label>
+                                        {{ field }}
+                                        {% if field.errors %}
+                                            <span class="text-error text-sm">{{ field.errors.0 }}</span>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                                {% for hidden in nested_form.hidden_fields %}{{ hidden }}{% endfor %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
