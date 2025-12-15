@@ -9,6 +9,9 @@ dependencies = [
     "django-htmx>=1.27.0",
 ]
 
+[tool.setuptools.package-data]
+orange_sherbert = ["templates/**/*.html"]
+
 [dependency-groups]
 dev = [
     "coverage>=7.13.0",
