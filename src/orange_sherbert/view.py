@@ -260,6 +260,7 @@ class CRUDView(View):
     inline_formsets = []
     property_field_map = {}
     view_type = None
+    url_prefix = None
     list_template_name = 'orange_sherbert/list.html'
     detail_template_name = 'orange_sherbert/detail.html'
     create_template_name = 'orange_sherbert/create.html'
@@ -348,14 +349,18 @@ class CRUDView(View):
     @classmethod
     def get_urls(cls):
         model_name = cls.get_model_name()
-        app_name = cls.model._meta.app_label
+        
+        if cls.url_prefix is not None:
+            base = f'{cls.url_prefix}/{model_name}' if cls.url_prefix else model_name
+        else:
+            base = model_name
 
         urls = [
-            path(f'{app_name}/{model_name}/', cls.as_view(view_type='list'), name=f'{model_name}-list'),
-            path(f'{app_name}/{model_name}/create/', cls.as_view(view_type='create'), name=f'{model_name}-create'),
-            path(f'{app_name}/{model_name}/<int:pk>/', cls.as_view(view_type='detail'), name=f'{model_name}-detail'),
-            path(f'{app_name}/{model_name}/<int:pk>/update/', cls.as_view(view_type='update'), name=f'{model_name}-update'),
-            path(f'{app_name}/{model_name}/<int:pk>/delete/', cls.as_view(view_type='delete'), name=f'{model_name}-delete'),
+            path(f'{base}/', cls.as_view(view_type='list'), name=f'{model_name}-list'),
+            path(f'{base}/create/', cls.as_view(view_type='create'), name=f'{model_name}-create'),
+            path(f'{base}/<int:pk>/', cls.as_view(view_type='detail'), name=f'{model_name}-detail'),
+            path(f'{base}/<int:pk>/update/', cls.as_view(view_type='update'), name=f'{model_name}-update'),
+            path(f'{base}/<int:pk>/delete/', cls.as_view(view_type='delete'), name=f'{model_name}-delete'),
         ]
         
         if cls.extra_actions:
@@ -364,7 +369,7 @@ class CRUDView(View):
                 view_class = action['view']
                 
                 url_name = f"{model_name}-{action_name}"
-                url_path = f'{app_name}/{model_name}/<int:pk>/{action_name}/'
+                url_path = f'{base}/<int:pk>/{action_name}/'
                 urls.append(path(url_path, view_class.as_view(), name=url_name))
         
         return urls
