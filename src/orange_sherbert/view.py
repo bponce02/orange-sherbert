@@ -234,7 +234,8 @@ class _CRUDMixin:
     
     def get_success_url(self):
         model_name = self.model._meta.model_name
-        return reverse(f'{model_name}-list')
+        url_name = f'{self.url_namespace}:{model_name}-list' if self.url_namespace else f'{model_name}-list'
+        return reverse(url_name)
 
 class _CRUDListView(_CRUDMixin, ListView):
     template_name = 'orange_sherbert/list.html'
