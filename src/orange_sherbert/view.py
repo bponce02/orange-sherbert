@@ -7,7 +7,25 @@ from django.views import View
 from django.urls import path, reverse
 from django.db.models import Q
 from django.http import HttpResponseForbidden
+from django.forms.models import BaseInlineFormSet
+from django.forms.models import inlineformset_factory
 
+class NestedInlineFormSet(BaseInlineFormSet):
+    parent_formset_name = None
+    children = []
+    def __init__(self, *args, parent_form=None, **kwargs):
+        self.parent_form = parent_form
+        super().__init__(*args, **kwargs)
+
+def nestedinlineformset_factory(parent_model, model, parent_formset_name, **kwargs):
+    FormSet = inlineformset_factory(
+        parent_model,
+        model,
+        formset=NestedInlineFormSet,
+        **kwargs
+    )
+    FormSet.parent_formset_name = parent_formset_name
+    return FormSet
 
 class _CRUDMixin:
     fields = None
@@ -18,7 +36,114 @@ class _CRUDMixin:
     property_field_map = {}
     view_type = None
     url_namespace = None
+    inline_formsets = []
 
+    def get_formsets(self):
+        formsets = {}
+
+        if self.inline_formsets:
+            for config in self.inline_formsets:
+                name = config['model']._meta.model_name
+                parent_model = config.get('nested_under') or self.model
+                parent_name = config['nested_under']._meta.model_name if config.get('nested_under') else None
+                
+                formset = nestedinlineformset_factory(
+                    parent_model,
+                    config['model'],
+                    parent_formset_name=parent_name,
+                    fields=config.get('fields', '__all__'),
+                    extra=config.get('extra', 1),
+                    can_delete=config.get('can_delete', True),
+                )
+                formsets[name] = formset
+
+        return formsets
+    
+    def init_formsets(self):
+        self.formset_instances = {}
+        formsets = self.get_formsets()
+        
+        for name, FormSetClass in formsets.items():
+            if FormSetClass.parent_formset_name is None:
+                formset_instance = FormSetClass(
+                    instance=getattr(self, 'object', None),
+                    prefix=name,
+                )
+                for form in formset_instance.forms:
+                    form.children = []
+                self.formset_instances[name] = formset_instance
+        
+        for name, FormSetClass in formsets.items():
+            parent_name = FormSetClass.parent_formset_name
+            if parent_name and parent_name in self.formset_instances:
+                parent_formset = self.formset_instances[parent_name]
+                for i, parent_form in enumerate(parent_formset.forms):
+                    child_formset = FormSetClass(
+                        instance=parent_form.instance,
+                        prefix=f'{parent_name}-{i}-{name}',
+                        parent_form=parent_form,
+                    )
+                    for form in child_formset.forms:
+                        form.children = []
+                    parent_form.children.append(child_formset)
+
+    def bind_formsets(self, request):
+        self.formset_instances = {}
+        formsets = self.get_formsets()
+        
+        for name, FormSetClass in formsets.items():
+            if FormSetClass.parent_formset_name is None:
+                formset_instance = FormSetClass(
+                    request.POST,
+                    request.FILES,
+                    instance=getattr(self, 'object', None),
+                    prefix=name,
+                )
+                for form in formset_instance.forms:
+                    form.children = []
+                self.formset_instances[name] = formset_instance
+        
+        for name, FormSetClass in formsets.items():
+            parent_name = FormSetClass.parent_formset_name
+            if parent_name and parent_name in self.formset_instances:
+                parent_formset = self.formset_instances[parent_name]
+                for i, parent_form in enumerate(parent_formset.forms):
+                    child_formset = FormSetClass(
+                        request.POST,
+                        request.FILES,
+                        instance=parent_form.instance,
+                        prefix=f'{parent_name}-{i}-{name}',
+                        parent_form=parent_form,
+                    )
+                    for form in child_formset.forms:
+                        form.children = []
+                    parent_form.children.append(child_formset)
+
+    def are_formsets_valid(self):
+        valid = True
+        stack = list(self.formset_instances.values())
+        while stack:
+            formset = stack.pop()
+            valid = formset.is_valid() and valid
+            for form in formset.forms:
+                if hasattr(form, 'children'):
+                    stack.extend(form.children)
+        return valid
+
+    def save_formsets(self):
+        for formset in self.formset_instances.values():
+            formset.instance = self.object
+        
+        stack = list(self.formset_instances.values())
+        while stack:
+            formset = stack.pop(0)
+            formset.save()
+            for form in formset.forms:
+                if hasattr(form, 'children'):
+                    for child in form.children:
+                        child.instance = form.instance
+                        stack.append(child)
+    
     def get_queryset(self, **kwargs):
         queryset = super().get_queryset()
         
@@ -87,12 +212,47 @@ class _CRUDMixin:
                 detail_fields.append((field_name, verbose_name, value))
             context['detail_fields'] = detail_fields
         
+        if self.view_type in ('create', 'update') and self.inline_formsets:
+            if not hasattr(self, 'formset_instances'):
+                self.init_formsets()
+            context['formsets'] = self.formset_instances
+        
         return context
     
     def get_success_url(self):
         model_name = self.model._meta.model_name
         url_name = f'{self.url_namespace}:{model_name}-list' if self.url_namespace else f'{model_name}-list'
         return reverse(url_name)
+
+    def get(self, request, *args, **kwargs):
+        if self.view_type == 'create':
+            self.object = None
+        elif self.view_type == 'update':
+            self.object = self.get_object()
+        if self.inline_formsets:
+            self.init_formsets()
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        if self.view_type == 'create':
+            self.object = None
+        elif self.view_type == 'update':
+            self.object = self.get_object()
+        form = self.get_form()
+        if self.inline_formsets:
+            self.bind_formsets(request)
+            if form.is_valid() and self.are_formsets_valid():
+                return self.form_valid(form)
+        else:
+            if form.is_valid():
+                return self.form_valid(form)
+        return self.form_invalid(form)
+
+    def form_valid(self, form):
+        self.object = form.save()
+        if self.inline_formsets:
+            self.save_formsets()
+        return super().form_valid(form)
 
 class _CRUDListView(_CRUDMixin, ListView):
     template_name = 'orange_sherbert/list.html'
@@ -120,6 +280,7 @@ class CRUDView(View):
     filter_fields = {}
     search_fields = []
     property_field_map = {}
+    inline_formsets = []
     view_type = None
     url_namespace = None
     list_template_name = 'orange_sherbert/list.html'
@@ -185,6 +346,7 @@ class CRUDView(View):
             'view_type': view_type,
             'form_fields': self.form_fields,
             'url_namespace': self.url_namespace,
+            'inline_formsets': self.inline_formsets,
         }
 
         if view_type == 'list':

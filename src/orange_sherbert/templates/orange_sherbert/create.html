@@ -36,6 +36,14 @@
                 </div>
                 {% endif %}
                 
+                {% if formsets %}
+                <div class="divider">Related Items</div>
+                {% for name, formset in formsets.items %}
+                    <h3 class="font-semibold text-lg mb-2">{{ name|title }}</h3>
+                    {% include "orange_sherbert/includes/formset.html" with formset=formset %}
+                {% endfor %}
+                {% endif %}
+                
                 <div class="card-actions justify-end gap-2 mt-6">
                     <a href="{% url url_namespace|add:model_name|add:'-list' %}" class="btn btn-ghost">Cancel</a>
                     <button type="submit" class="btn btn-primary">Create</button>
