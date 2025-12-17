@@ -5,34 +5,14 @@ Usage: {% include "orange_sherbert/includes/formset.html" with formset=formset %
 
 <div class="formset border border-base-300 rounded-lg p-4 mb-4">
     {{ formset.management_form }}
-    
     {% for form in formset %}
-    <div class="formset-form border border-base-200 rounded p-3 mb-3 bg-base-50">
-        {% for field in form %}
-            {% if not field.is_hidden %}
-            <div class="form-control mb-2">
-                <label class="label">
-                    <span class="label-text font-semibold">{{ field.label }}</span>
-                </label>
-                {{ field }}
-                {% if field.errors %}
-                    <label class="label">
-                        <span class="label-text-alt text-error">{{ field.errors.0 }}</span>
-                    </label>
-                {% endif %}
-            </div>
-            {% else %}
-                {{ field }}
-            {% endif %}
-        {% endfor %}
-        
-        {% for child_formset in form.children %}
-            <div class="nested-formset ml-6 border-l-2 border-primary/30 pl-4 mt-3">
-                {% include "orange_sherbert/includes/formset.html" with formset=child_formset %}
-            </div>
-        {% endfor %}
-    </div>
+        {% include "orange_sherbert/includes/form.html" with form=form %}
     {% empty %}
     <p class="text-base-content/60 italic">No items yet.</p>
     {% endfor %}
+    <button type="button" 
+        hx-post=""
+        hx-swap="beforebegin"
+        hx-vals='{"prefix": "{{ formset.prefix }}"}'
+        class="btn btn-sm btn-outline btn-primary mt-2">+ Add</button>
 </div>

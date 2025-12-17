@@ -6,7 +6,8 @@ from django.views.generic import DeleteView
 from django.views import View
 from django.urls import path, reverse
 from django.db.models import Q
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpResponse
+from django.template.loader import render_to_string
 from django.forms.models import BaseInlineFormSet
 from django.forms.models import inlineformset_factory
 
@@ -61,6 +62,7 @@ class _CRUDMixin:
     
     def init_formsets(self):
         self.formset_instances = {}
+        self.all_formsets_by_prefix = {}
         formsets = self.get_formsets()
         
         for name, FormSetClass in formsets.items():
@@ -72,20 +74,23 @@ class _CRUDMixin:
                 for form in formset_instance.forms:
                     form.children = []
                 self.formset_instances[name] = formset_instance
+                self.all_formsets_by_prefix[name] = formset_instance
         
         for name, FormSetClass in formsets.items():
             parent_name = FormSetClass.parent_formset_name
             if parent_name and parent_name in self.formset_instances:
                 parent_formset = self.formset_instances[parent_name]
                 for i, parent_form in enumerate(parent_formset.forms):
+                    prefix = f'{parent_name}-{i}-{name}'
                     child_formset = FormSetClass(
                         instance=parent_form.instance,
-                        prefix=f'{parent_name}-{i}-{name}',
+                        prefix=prefix,
                         parent_form=parent_form,
                     )
                     for form in child_formset.forms:
                         form.children = []
                     parent_form.children.append(child_formset)
+                    self.all_formsets_by_prefix[prefix] = child_formset
 
     def bind_formsets(self, request):
         self.formset_instances = {}
@@ -118,6 +123,30 @@ class _CRUDMixin:
                     for form in child_formset.forms:
                         form.children = []
                     parent_form.children.append(child_formset)
+
+    def add_formset(self, formset_name):
+        target_formset = self.all_formsets_by_prefix.get(formset_name)
+        if target_formset:
+            empty_form = target_formset.empty_form
+            empty_form.children = []
+            
+            formsets = self.get_formsets()
+            form_index = len(target_formset.forms)
+            
+            target_model_name = target_formset.model._meta.model_name
+            for name, FormSetClass in formsets.items():
+                if FormSetClass.parent_formset_name == target_model_name:
+                    child_prefix = f'{formset_name}-{form_index}-{name}'
+                    child_formset = FormSetClass(
+                        instance=empty_form.instance,
+                        prefix=child_prefix,
+                    )
+                    for form in child_formset.forms:
+                        form.children = []
+                    empty_form.children.append(child_formset)
+            
+            return empty_form
+        return None
 
     def are_formsets_valid(self):
         valid = True
@@ -238,6 +267,22 @@ class _CRUDMixin:
             self.object = None
         elif self.view_type == 'update':
             self.object = self.get_object()
+        
+        if self.inline_formsets:
+            self.init_formsets()
+        
+        if request.htmx:
+            prefix = request.POST.get('prefix')
+            form = self.add_formset(prefix)
+            if form:
+                html = render_to_string(
+                    'orange_sherbert/includes/form.html',
+                    {'form': form},
+                    request=request,
+                )
+                return HttpResponse(html)
+            return HttpResponse(f"Formset '{prefix}' not found", status=400)
+
         form = self.get_form()
         if self.inline_formsets:
             self.bind_formsets(request)
