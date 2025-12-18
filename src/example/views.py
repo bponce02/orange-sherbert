@@ -42,7 +42,7 @@ class BookCRUDView(CRUDView):
         'ordered_from': 'Ordered From',
         'location': 'Location',
     }
-    filter_fields = ['author', 'checked_out']
+    filter_fields = {'author': 'Author', 'checked_out': 'Checked Out'}
     search_fields = ['title', 'isbn']
     restricted_fields = {'ordered_from': 'can_view_ordered_from'}
     property_field_map = {'formatted_price': 'price'}

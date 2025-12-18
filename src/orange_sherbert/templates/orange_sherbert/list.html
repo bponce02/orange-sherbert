@@ -56,9 +56,9 @@
                         hx-push-url="true"
                         hx-include="#search-input, #filter-form select, #sort-by-input, #sort-dir-input">
                             <option value="">All</option>
-                            {% for option in options %}
-                                <option value="{{ option }}" {% is_selected option request field_name %}>
-                                    {{ option }}
+                            {% for value, display in options %}
+                                <option value="{{ value }}" {% is_selected value request field_name %}>
+                                    {{ display }}
                                 </option>
                             {% endfor %}
                         </select>
