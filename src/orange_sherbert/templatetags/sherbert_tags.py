@@ -6,9 +6,25 @@ register = template.Library()
 @register.simple_tag
 def get_field_options(obj, field_name):
     model = obj.model
+    
+    if '__' in field_name:
+        parts = field_name.split('__')
+        current_model = model
+        for part in parts[:-1]:
+            rel_field = current_model._meta.get_field(part)
+            current_model = rel_field.related_model
+        field = current_model._meta.get_field(parts[-1])
+        
+        distinct_values = model.objects.values_list(field_name, flat=True).distinct()
+        distinct_values = [v for v in distinct_values if v not in (None, '')]
+        
+        if hasattr(field, 'choices') and field.choices:
+            choices_dict = dict(field.choices)
+            return [(v, choices_dict.get(v, v)) for v in distinct_values]
+        return [(v, v) for v in distinct_values]
+    
     field = model._meta.get_field(field_name)
     
-    # Check if it's a ForeignKey - return (id, str) tuples
     if field.is_relation:
         related_model = field.related_model
         related_ids = model.objects.values_list(field_name, flat=True).distinct()
@@ -16,7 +32,6 @@ def get_field_options(obj, field_name):
         related_objects = related_model.objects.filter(pk__in=related_ids)
         return [(obj.pk, str(obj)) for obj in related_objects]
     
-    # Regular field - return simple values
     distinct_values = model.objects.values_list(field_name, flat=True).distinct().order_by(field_name)
     return [(v, v) for v in distinct_values if v not in (None, '')]
 
