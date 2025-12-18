@@ -127,25 +127,7 @@ class _CRUDMixin:
     def add_formset(self, formset_name):
         target_formset = self.all_formsets_by_prefix.get(formset_name)
         if target_formset:
-            empty_form = target_formset.empty_form
-            empty_form.children = []
-            
-            formsets = self.get_formsets()
-            form_index = len(target_formset.forms)
-            
-            target_model_name = target_formset.model._meta.model_name
-            for name, FormSetClass in formsets.items():
-                if FormSetClass.parent_formset_name == target_model_name:
-                    child_prefix = f'{formset_name}-{form_index}-{name}'
-                    child_formset = FormSetClass(
-                        instance=empty_form.instance,
-                        prefix=child_prefix,
-                    )
-                    for form in child_formset.forms:
-                        form.children = []
-                    empty_form.children.append(child_formset)
-            
-            return empty_form
+            return target_formset
         return None
 
     def are_formsets_valid(self):
@@ -275,12 +257,12 @@ class _CRUDMixin:
             prefix = request.POST.get('prefix')
             form = self.add_formset(prefix)
             if form:
-                html = render_to_string(
-                    'orange_sherbert/includes/form.html',
-                    {'form': form},
-                    request=request,
-                )
-                return HttpResponse(html)
+                # html = render_to_string(
+                #     'orange_sherbert/includes/form.html',
+                #     {'form': form},
+                #     request=request,
+                # )
+                return HttpResponse(prefix)
             return HttpResponse(f"Formset '{prefix}' not found", status=400)
 
         form = self.get_form()
