@@ -358,6 +358,7 @@ class CRUDView(View):
     inline_formsets = []
     view_type = None
     url_namespace = None
+    path_converter = 'int'  # 'int', 'uuid', 'slug', etc.
     list_template_name = 'orange_sherbert/list.html'
     detail_template_name = 'orange_sherbert/detail.html'
     create_template_name = 'orange_sherbert/create.html'
@@ -449,12 +450,14 @@ class CRUDView(View):
     def get_urls(cls):
         model_name = cls.get_model_name()
 
+        pk_type = cls.path_converter
+        
         urls = [
             path(f'{model_name}/', cls.as_view(view_type='list'), name=f'{model_name}-list'),
             path(f'{model_name}/create/', cls.as_view(view_type='create'), name=f'{model_name}-create'),
-            path(f'{model_name}/<int:pk>/', cls.as_view(view_type='detail'), name=f'{model_name}-detail'),
-            path(f'{model_name}/<int:pk>/update/', cls.as_view(view_type='update'), name=f'{model_name}-update'),
-            path(f'{model_name}/<int:pk>/delete/', cls.as_view(view_type='delete'), name=f'{model_name}-delete'),
+            path(f'{model_name}/<{pk_type}:pk>/', cls.as_view(view_type='detail'), name=f'{model_name}-detail'),
+            path(f'{model_name}/<{pk_type}:pk>/update/', cls.as_view(view_type='update'), name=f'{model_name}-update'),
+            path(f'{model_name}/<{pk_type}:pk>/delete/', cls.as_view(view_type='delete'), name=f'{model_name}-delete'),
         ]
         
         if cls.extra_actions:
@@ -463,7 +466,7 @@ class CRUDView(View):
                 view_class = action['view']
                 
                 url_name = f"{model_name}-{action_name}"
-                url_path = f'{model_name}/<int:pk>/{action_name}/'
+                url_path = f'{model_name}/<{pk_type}:pk>/{action_name}/'
                 urls.append(path(url_path, view_class.as_view(), name=url_name))
         
         return urls
