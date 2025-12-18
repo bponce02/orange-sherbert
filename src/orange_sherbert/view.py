@@ -162,6 +162,13 @@ class _CRUDMixin:
                 if hasattr(form, 'children'):
                     stack.extend(form.children)
         return valid
+    
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # Call parent_view's get_form if it exists
+        if self.parent_view and hasattr(self.parent_view, 'get_form'):
+            form = self.parent_view.get_form(form, self.request)
+        return form
 
     def save_formsets(self):
         for formset in self.formset_instances.values():
@@ -179,6 +186,10 @@ class _CRUDMixin:
     
     def get_queryset(self, **kwargs):
         queryset = super().get_queryset()
+        
+        # Call parent_view's get_queryset if it exists
+        if self.parent_view and hasattr(self.parent_view, 'get_queryset'):
+            queryset = self.parent_view.get_queryset(queryset, self.request)
         
         filter_fields = self.filter_fields
         if filter_fields:
@@ -304,9 +315,18 @@ class _CRUDMixin:
         return self.form_invalid(form)
 
     def form_valid(self, form):
+        # Call parent_view's form_valid before save if it exists
+        if self.parent_view and hasattr(self.parent_view, 'form_valid'):
+            self.parent_view.form_valid(form)
+        
         self.object = form.save()
         if self.inline_formsets:
             self.save_formsets()
+        
+        # Call parent_view's post_save if it exists (for M2M relations, etc.)
+        if self.parent_view and hasattr(self.parent_view, 'post_save'):
+            self.parent_view.post_save(self.object, self.request)
+        
         return super().form_valid(form)
 
 class _CRUDListView(_CRUDMixin, ListView):
