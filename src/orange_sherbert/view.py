@@ -38,6 +38,7 @@ class _CRUDMixin:
     view_type = None
     url_namespace = None
     inline_formsets = []
+    parent_view = None
 
     def get_formsets(self):
         formsets = {}
@@ -249,6 +250,9 @@ class _CRUDMixin:
                 self.init_formsets()
             context['formsets'] = self.formset_instances
         
+        if self.parent_view and hasattr(self.parent_view, 'get_context_data'):
+            context = self.parent_view.get_context_data(context, self.request)
+        
         return context
     
     def get_success_url(self):
@@ -398,6 +402,7 @@ class CRUDView(View):
             'form_fields': self.form_fields,
             'url_namespace': self.url_namespace,
             'inline_formsets': self.inline_formsets,
+            'parent_view': self,
         }
 
         if view_type == 'list':
