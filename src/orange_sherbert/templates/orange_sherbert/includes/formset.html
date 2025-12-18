@@ -13,6 +13,7 @@ Usage: {% include "orange_sherbert/includes/formset.html" with formset=formset %
     <button type="button" 
         hx-post=""
         hx-swap="beforebegin"
-        hx-vals='{"prefix": "{{ formset.prefix }}"}'
+        hx-vals='js:{formset_class: "{{ formset.model_name }}", prefix: "{{ formset.prefix }}", form_index: document.querySelector("#id_{{ formset.prefix }}-TOTAL_FORMS").value}'
+        hx-on::after-request="document.querySelector('#id_{{ formset.prefix }}-TOTAL_FORMS').value++;"
         class="btn btn-sm btn-outline btn-primary mt-2">+ Add</button>
 </div>
