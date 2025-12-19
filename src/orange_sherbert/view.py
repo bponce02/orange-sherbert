@@ -286,6 +286,10 @@ class _CRUDMixin:
         elif self.view_type in ('update', 'delete'):
             self.object = self.get_object()
         
+        # For delete views, skip form handling and let DeleteView handle it
+        if self.view_type == 'delete':
+            return super().post(request, *args, **kwargs)
+        
         if self.inline_formsets:
             self.init_formsets()
         
