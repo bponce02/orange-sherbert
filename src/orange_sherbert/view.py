@@ -357,7 +357,8 @@ class _CRUDDeleteView(_CRUDMixin, DeleteView):
         # DeleteView needs this to delete the object
         if not hasattr(self, 'object') or not self.object:
             self.object = self.get_object()
-        return super(_CRUDMixin, self).form_valid(form)
+        # Call the actual delete logic from DeleteView
+        return DeleteView.form_valid(self, form)
 
 
 class CRUDView(View):
