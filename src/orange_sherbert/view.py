@@ -345,6 +345,13 @@ class _CRUDUpdateView(_CRUDMixin, UpdateView):
 
 class _CRUDDeleteView(_CRUDMixin, DeleteView):
     template_name = 'orange_sherbert/delete.html'
+    
+    def form_valid(self, form):
+        # Set self.object before calling parent's form_valid
+        # DeleteView needs this to delete the object
+        if not hasattr(self, 'object') or not self.object:
+            self.object = self.get_object()
+        return super(_CRUDMixin, self).form_valid(form)
 
 
 class CRUDView(View):
