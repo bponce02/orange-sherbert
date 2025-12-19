@@ -185,10 +185,12 @@ class _CRUDMixin:
             
             # Check if this is a date/time field with TextInput widget and convert it
             if isinstance(field, django_forms.DateField) and isinstance(widget, django_forms.TextInput):
+                print(f"DEBUG: Found DateField '{field_name}' with TextInput widget, setting type='date'")
                 attrs['type'] = 'date'
                 if 'class' not in attrs:
                     attrs['class'] = 'input input-bordered w-full'
                 widget.attrs = attrs
+                print(f"DEBUG: Widget attrs after setting: {widget.attrs}")
             elif isinstance(field, django_forms.TimeField) and isinstance(widget, django_forms.TextInput):
                 attrs['type'] = 'time'
                 if 'class' not in attrs:
