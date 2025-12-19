@@ -183,41 +183,66 @@ class _CRUDMixin:
             widget = field.widget
             attrs = widget.attrs if hasattr(widget, 'attrs') else {}
             
+            # Check if this is a date/time field with TextInput widget and convert it
+            if isinstance(field, django_forms.DateField) and isinstance(widget, django_forms.TextInput):
+                if 'type' not in attrs:
+                    attrs['type'] = 'date'
+                if 'class' not in attrs:
+                    attrs['class'] = 'input input-bordered w-full'
+                widget.attrs = attrs
+            elif isinstance(field, django_forms.TimeField) and isinstance(widget, django_forms.TextInput):
+                if 'type' not in attrs:
+                    attrs['type'] = 'time'
+                if 'class' not in attrs:
+                    attrs['class'] = 'input input-bordered w-full'
+                widget.attrs = attrs
+            elif isinstance(field, django_forms.DateTimeField) and isinstance(widget, django_forms.TextInput):
+                if 'type' not in attrs:
+                    attrs['type'] = 'datetime-local'
+                if 'class' not in attrs:
+                    attrs['class'] = 'input input-bordered w-full'
+                widget.attrs = attrs
             # Add default classes based on widget type
-            if isinstance(widget, (django_forms.TextInput, django_forms.EmailInput, 
+            elif isinstance(widget, (django_forms.TextInput, django_forms.EmailInput, 
                                   django_forms.URLInput, django_forms.NumberInput,
                                   django_forms.PasswordInput)):
                 if 'class' not in attrs:
                     attrs['class'] = 'input input-bordered w-full'
+                widget.attrs = attrs
             elif isinstance(widget, django_forms.Textarea):
                 if 'class' not in attrs:
                     attrs['class'] = 'textarea textarea-bordered w-full'
+                widget.attrs = attrs
             elif isinstance(widget, django_forms.Select):
                 if 'class' not in attrs:
                     attrs['class'] = 'select select-bordered w-full'
+                widget.attrs = attrs
             elif isinstance(widget, django_forms.CheckboxInput):
                 if 'class' not in attrs:
                     attrs['class'] = 'checkbox'
+                widget.attrs = attrs
             elif isinstance(widget, django_forms.FileInput):
                 if 'class' not in attrs:
                     attrs['class'] = 'file-input file-input-bordered w-full'
+                widget.attrs = attrs
             elif isinstance(widget, django_forms.DateInput):
                 if 'class' not in attrs:
                     attrs['class'] = 'input input-bordered w-full'
                 if 'type' not in attrs:
                     attrs['type'] = 'date'
+                widget.attrs = attrs
             elif isinstance(widget, django_forms.TimeInput):
                 if 'class' not in attrs:
                     attrs['class'] = 'input input-bordered w-full'
                 if 'type' not in attrs:
                     attrs['type'] = 'time'
+                widget.attrs = attrs
             elif isinstance(widget, django_forms.DateTimeInput):
                 if 'class' not in attrs:
                     attrs['class'] = 'input input-bordered w-full'
                 if 'type' not in attrs:
                     attrs['type'] = 'datetime-local'
-            
-            widget.attrs = attrs
+                widget.attrs = attrs
         
         # Call parent_view's get_form if it exists
         if self.parent_view and hasattr(self.parent_view, 'get_form'):
