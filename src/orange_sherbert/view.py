@@ -167,6 +167,8 @@ class _CRUDMixin:
         kwargs = super().get_form_kwargs()
         # Call parent_view's get_form_kwargs if it exists
         if self.parent_view and hasattr(self.parent_view, 'get_form_kwargs'):
+            # Set request on parent_view so it can access self.request
+            self.parent_view.request = self.request
             parent_kwargs = self.parent_view.get_form_kwargs()
             kwargs.update(parent_kwargs)
         return kwargs

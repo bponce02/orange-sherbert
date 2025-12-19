@@ -8,7 +8,7 @@
         <div class="card-body">
             <h1 class="card-title text-2xl mb-4">Update {{ object }}</h1>
             
-            <form method="post" class="space-y-4">
+            <form method="post" enctype="multipart/form-data" class="space-y-4">
                 {% csrf_token %}
                 
                 {% for field in form %}
