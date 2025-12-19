@@ -163,6 +163,14 @@ class _CRUDMixin:
                     stack.extend(form.children)
         return valid
     
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Call parent_view's get_form_kwargs if it exists
+        if self.parent_view and hasattr(self.parent_view, 'get_form_kwargs'):
+            parent_kwargs = self.parent_view.get_form_kwargs()
+            kwargs.update(parent_kwargs)
+        return kwargs
+    
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         # Call parent_view's get_form if it exists
