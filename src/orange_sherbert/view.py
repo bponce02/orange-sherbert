@@ -432,9 +432,11 @@ class CRUDView(View):
                     resolved_form_fields[k] = v
             form_fields = resolved_form_fields
         
+        # Check if custom form_class is defined
+        has_custom_form = hasattr(self, 'form_class') and self.form_class is not None
+        
         view_kwargs = {
             'model': self.model,
-            'fields': form_fields if view_type in ('create', 'update', 'detail') else self.fields,
             'filter_fields': self.filter_fields,
             'search_fields': self.search_fields,
             'extra_actions': self.extra_actions,
@@ -446,9 +448,11 @@ class CRUDView(View):
             'parent_view': self,
         }
         
-        # Pass form_class if defined on the parent view
-        if hasattr(self, 'form_class') and self.form_class is not None:
+        # Only pass fields if no custom form_class (Django doesn't allow both)
+        if has_custom_form:
             view_kwargs['form_class'] = self.form_class
+        else:
+            view_kwargs['fields'] = form_fields if view_type in ('create', 'update', 'detail') else self.fields
 
         if view_type == 'list':
             view_kwargs['template_name'] = self.list_template_name
