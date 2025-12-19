@@ -183,24 +183,22 @@ class _CRUDMixin:
             widget = field.widget
             attrs = widget.attrs if hasattr(widget, 'attrs') else {}
             
-            # Check if this is a date/time field with TextInput widget and convert it
+            # Check if this is a date/time field with TextInput widget and replace it
             if isinstance(field, django_forms.DateField) and isinstance(widget, django_forms.TextInput):
-                print(f"DEBUG: Found DateField '{field_name}' with TextInput widget, setting type='date'")
-                attrs['type'] = 'date'
+                # Replace TextInput with DateInput (which has input_type='date')
                 if 'class' not in attrs:
                     attrs['class'] = 'input input-bordered w-full'
-                widget.attrs = attrs
-                print(f"DEBUG: Widget attrs after setting: {widget.attrs}")
+                field.widget = django_forms.DateInput(attrs=attrs)
             elif isinstance(field, django_forms.TimeField) and isinstance(widget, django_forms.TextInput):
-                attrs['type'] = 'time'
+                # Replace TextInput with TimeInput (which has input_type='time')
                 if 'class' not in attrs:
                     attrs['class'] = 'input input-bordered w-full'
-                widget.attrs = attrs
+                field.widget = django_forms.TimeInput(attrs=attrs)
             elif isinstance(field, django_forms.DateTimeField) and isinstance(widget, django_forms.TextInput):
-                attrs['type'] = 'datetime-local'
+                # Replace TextInput with DateTimeInput (which has input_type='datetime-local')
                 if 'class' not in attrs:
                     attrs['class'] = 'input input-bordered w-full'
-                widget.attrs = attrs
+                field.widget = django_forms.DateTimeInput(attrs=attrs)
             # Add default classes based on widget type
             elif isinstance(widget, (django_forms.TextInput, django_forms.EmailInput, 
                                   django_forms.URLInput, django_forms.NumberInput,
