@@ -449,7 +449,8 @@ class CRUDView(View):
         }
         
         # Only pass fields if no custom form_class (Django doesn't allow both)
-        if has_custom_form:
+        # form_class only applies to create/update views
+        if has_custom_form and view_type in ('create', 'update'):
             view_kwargs['form_class'] = self.form_class
         else:
             view_kwargs['fields'] = form_fields if view_type in ('create', 'update', 'detail') else self.fields
