@@ -319,13 +319,15 @@ class _CRUDMixin:
         if self.parent_view and hasattr(self.parent_view, 'form_valid'):
             self.parent_view.form_valid(form)
         
-        self.object = form.save()
-        if self.inline_formsets:
-            self.save_formsets()
-        
-        # Call parent_view's post_save if it exists (for M2M relations, etc.)
-        if self.parent_view and hasattr(self.parent_view, 'post_save'):
-            self.parent_view.post_save(self.object, self.request)
+        # Only save form if it has a save method (delete forms don't)
+        if hasattr(form, 'save'):
+            self.object = form.save()
+            if self.inline_formsets:
+                self.save_formsets()
+            
+            # Call parent_view's post_save if it exists (for M2M relations, etc.)
+            if self.parent_view and hasattr(self.parent_view, 'post_save'):
+                self.parent_view.post_save(self.object, self.request)
         
         return super().form_valid(form)
 
