@@ -445,6 +445,10 @@ class CRUDView(View):
             'inline_formsets': self.inline_formsets,
             'parent_view': self,
         }
+        
+        # Pass form_class if defined on the parent view
+        if hasattr(self, 'form_class') and self.form_class is not None:
+            view_kwargs['form_class'] = self.form_class
 
         if view_type == 'list':
             view_kwargs['template_name'] = self.list_template_name
