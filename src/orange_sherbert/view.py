@@ -283,7 +283,7 @@ class _CRUDMixin:
     def post(self, request, *args, **kwargs):
         if self.view_type == 'create':
             self.object = None
-        elif self.view_type == 'update':
+        elif self.view_type in ('update', 'delete'):
             self.object = self.get_object()
         
         if self.inline_formsets:
