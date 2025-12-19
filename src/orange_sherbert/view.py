@@ -174,10 +174,55 @@ class _CRUDMixin:
         return kwargs
     
     def get_form(self, form_class=None):
+        from django import forms as django_forms
+        
         form = super().get_form(form_class)
+        
+        # Apply default DaisyUI styling to form widgets
+        for field_name, field in form.fields.items():
+            widget = field.widget
+            attrs = widget.attrs if hasattr(widget, 'attrs') else {}
+            
+            # Add default classes based on widget type
+            if isinstance(widget, (django_forms.TextInput, django_forms.EmailInput, 
+                                  django_forms.URLInput, django_forms.NumberInput,
+                                  django_forms.PasswordInput)):
+                if 'class' not in attrs:
+                    attrs['class'] = 'input input-bordered w-full'
+            elif isinstance(widget, django_forms.Textarea):
+                if 'class' not in attrs:
+                    attrs['class'] = 'textarea textarea-bordered w-full'
+            elif isinstance(widget, django_forms.Select):
+                if 'class' not in attrs:
+                    attrs['class'] = 'select select-bordered w-full'
+            elif isinstance(widget, django_forms.CheckboxInput):
+                if 'class' not in attrs:
+                    attrs['class'] = 'checkbox'
+            elif isinstance(widget, django_forms.FileInput):
+                if 'class' not in attrs:
+                    attrs['class'] = 'file-input file-input-bordered w-full'
+            elif isinstance(widget, django_forms.DateInput):
+                if 'class' not in attrs:
+                    attrs['class'] = 'input input-bordered w-full'
+                if 'type' not in attrs:
+                    attrs['type'] = 'date'
+            elif isinstance(widget, django_forms.TimeInput):
+                if 'class' not in attrs:
+                    attrs['class'] = 'input input-bordered w-full'
+                if 'type' not in attrs:
+                    attrs['type'] = 'time'
+            elif isinstance(widget, django_forms.DateTimeInput):
+                if 'class' not in attrs:
+                    attrs['class'] = 'input input-bordered w-full'
+                if 'type' not in attrs:
+                    attrs['type'] = 'datetime-local'
+            
+            widget.attrs = attrs
+        
         # Call parent_view's get_form if it exists
         if self.parent_view and hasattr(self.parent_view, 'get_form'):
             form = self.parent_view.get_form(form, self.request)
+        
         return form
 
     def save_formsets(self):
