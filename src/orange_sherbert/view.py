@@ -217,7 +217,7 @@ class _CRUDMixin:
                     # Only replace widget if it's still the default
                     # This preserves custom widgets defined in form classes
                     current_widget = field.widget.__class__.__name__
-                    if current_widget in ('TextInput', 'Textarea', 'Select', 'NumberInput', 
+                    if current_widget in ('TextInput', 'Textarea', 'Select', 'SelectMultiple', 'NumberInput', 
                                          'DateInput', 'TimeInput', 'DateTimeInput'):
                         field.widget = widget_class(attrs=attrs)
                     else:

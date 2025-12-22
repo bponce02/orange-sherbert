@@ -19,6 +19,9 @@ DEFAULT_FIELD_WIDGETS = {
     'TextField': ('Textarea', 'textarea textarea-bordered w-full', {'rows': '4'}),
     'BooleanField': ('CheckboxInput', 'checkbox', {}),
     'ChoiceField': ('Select', 'select select-bordered w-full', {}),
+    'TypedChoiceField': ('Select', 'select select-bordered w-full', {}),
+    'ModelChoiceField': ('Select', 'select select-bordered w-full', {}),
+    'ModelMultipleChoiceField': ('SelectMultiple', 'select select-bordered w-full', {'multiple': True}),
     'FileField': ('FileInput', 'file-input file-input-bordered w-full', {}),
     'ImageField': ('FileInput', 'file-input file-input-bordered w-full', {'accept': 'image/*'}),
 }
