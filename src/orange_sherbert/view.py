@@ -214,10 +214,11 @@ class _CRUDMixin:
                     attrs = {'class': css_classes}
                     attrs.update({k: v for k, v in extra_attrs.items() if k != 'type'})
                     
-                    # Only replace widget if it's still the default (TextInput for most fields)
+                    # Only replace widget if it's still the default
                     # This preserves custom widgets defined in form classes
                     current_widget = field.widget.__class__.__name__
-                    if current_widget in ('TextInput', 'Textarea', 'Select', 'NumberInput'):
+                    if current_widget in ('TextInput', 'Textarea', 'Select', 'NumberInput', 
+                                         'DateInput', 'TimeInput', 'DateTimeInput'):
                         field.widget = widget_class(attrs=attrs)
                     else:
                         # Widget was explicitly set, just add CSS classes if not present
