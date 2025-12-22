@@ -227,8 +227,16 @@ class _CRUDMixin:
                             # For other widgets, safe to replace
                             field.widget = widget_class(attrs=attrs)
                     else:
-                        # Widget was explicitly set, just add CSS classes if not present
-                        if 'class' not in field.widget.attrs:
+                        # Widget was explicitly set (custom widget), merge CSS classes
+                        existing_classes = field.widget.attrs.get('class', '')
+                        if existing_classes:
+                            # Merge with existing classes, avoiding duplicates
+                            existing_set = set(existing_classes.split())
+                            new_set = set(css_classes.split())
+                            combined = existing_set | new_set
+                            field.widget.attrs['class'] = ' '.join(sorted(combined))
+                        else:
+                            # No existing classes, just add ours
                             field.widget.attrs['class'] = css_classes
         
         # Call parent_view's get_form if it exists
