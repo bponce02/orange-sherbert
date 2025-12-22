@@ -219,7 +219,13 @@ class _CRUDMixin:
                     current_widget = field.widget.__class__.__name__
                     if current_widget in ('TextInput', 'Textarea', 'Select', 'SelectMultiple', 'NumberInput', 
                                          'DateInput', 'TimeInput', 'DateTimeInput'):
-                        field.widget = widget_class(attrs=attrs)
+                        # For Select/SelectMultiple, preserve choices by copying existing widget's choices
+                        if current_widget in ('Select', 'SelectMultiple'):
+                            # Just update the attrs on the existing widget instead of replacing it
+                            field.widget.attrs.update(attrs)
+                        else:
+                            # For other widgets, safe to replace
+                            field.widget = widget_class(attrs=attrs)
                     else:
                         # Widget was explicitly set, just add CSS classes if not present
                         if 'class' not in field.widget.attrs:
