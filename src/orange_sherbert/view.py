@@ -175,71 +175,45 @@ class _CRUDMixin:
     
     def get_form(self, form_class=None):
         from django import forms as django_forms
+        from django.conf import settings
+        from orange_sherbert.defaults import DEFAULT_FIELD_WIDGETS
         
         form = super().get_form(form_class)
         
-        # Apply default DaisyUI styling to form widgets
+        # Get global widget configuration (settings override defaults)
+        global_widgets = getattr(settings, 'ORANGE_SHERBERT_FIELD_WIDGETS', DEFAULT_FIELD_WIDGETS)
+        
+        # Get view-level widget configuration
+        view_widgets = getattr(self.parent_view, 'field_widgets', {}) if self.parent_view else {}
+        
+        # Merge configurations: view overrides global
+        field_widgets = {**global_widgets, **view_widgets}
+        
+        # Apply widget configuration based on field type
         for field_name, field in form.fields.items():
-            widget = field.widget
-            attrs = widget.attrs if hasattr(widget, 'attrs') else {}
+            field_type = field.__class__.__name__
             
-            # Check if this is a date/time field with TextInput widget and replace it
-            if isinstance(field, django_forms.DateField) and isinstance(widget, django_forms.TextInput):
-                # Replace TextInput with DateInput (which has input_type='date')
-                if 'class' not in attrs:
-                    attrs['class'] = 'input input-bordered w-full'
-                field.widget = django_forms.DateInput(attrs=attrs)
-            elif isinstance(field, django_forms.TimeField) and isinstance(widget, django_forms.TextInput):
-                # Replace TextInput with TimeInput (which has input_type='time')
-                if 'class' not in attrs:
-                    attrs['class'] = 'input input-bordered w-full'
-                field.widget = django_forms.TimeInput(attrs=attrs)
-            elif isinstance(field, django_forms.DateTimeField) and isinstance(widget, django_forms.TextInput):
-                # Replace TextInput with DateTimeInput (which has input_type='datetime-local')
-                if 'class' not in attrs:
-                    attrs['class'] = 'input input-bordered w-full'
-                field.widget = django_forms.DateTimeInput(attrs=attrs)
-            # Add default classes based on widget type
-            elif isinstance(widget, (django_forms.TextInput, django_forms.EmailInput, 
-                                  django_forms.URLInput, django_forms.NumberInput,
-                                  django_forms.PasswordInput)):
-                if 'class' not in attrs:
-                    attrs['class'] = 'input input-bordered w-full'
-                widget.attrs = attrs
-            elif isinstance(widget, django_forms.Textarea):
-                if 'class' not in attrs:
-                    attrs['class'] = 'textarea textarea-bordered w-full'
-                widget.attrs = attrs
-            elif isinstance(widget, django_forms.Select):
-                if 'class' not in attrs:
-                    attrs['class'] = 'select select-bordered w-full'
-                widget.attrs = attrs
-            elif isinstance(widget, django_forms.CheckboxInput):
-                if 'class' not in attrs:
-                    attrs['class'] = 'checkbox'
-                widget.attrs = attrs
-            elif isinstance(widget, django_forms.FileInput):
-                if 'class' not in attrs:
-                    attrs['class'] = 'file-input file-input-bordered w-full'
-                widget.attrs = attrs
-            elif isinstance(widget, django_forms.DateInput):
-                if 'class' not in attrs:
-                    attrs['class'] = 'input input-bordered w-full'
-                if 'type' not in attrs:
-                    attrs['type'] = 'date'
-                widget.attrs = attrs
-            elif isinstance(widget, django_forms.TimeInput):
-                if 'class' not in attrs:
-                    attrs['class'] = 'input input-bordered w-full'
-                if 'type' not in attrs:
-                    attrs['type'] = 'time'
-                widget.attrs = attrs
-            elif isinstance(widget, django_forms.DateTimeInput):
-                if 'class' not in attrs:
-                    attrs['class'] = 'input input-bordered w-full'
-                if 'type' not in attrs:
-                    attrs['type'] = 'datetime-local'
-                widget.attrs = attrs
+            # Check if we have a configuration for this field type
+            if field_type in field_widgets:
+                widget_class_name, css_classes, extra_attrs = field_widgets[field_type]
+                
+                # Get the widget class from django.forms
+                widget_class = getattr(django_forms, widget_class_name, None)
+                
+                if widget_class:
+                    # Build widget attributes
+                    attrs = {'class': css_classes}
+                    attrs.update(extra_attrs)
+                    
+                    # Only replace widget if it's still the default (TextInput for most fields)
+                    # This preserves custom widgets defined in form classes
+                    current_widget = field.widget.__class__.__name__
+                    if current_widget in ('TextInput', 'Textarea', 'Select', 'NumberInput'):
+                        field.widget = widget_class(attrs=attrs)
+                    else:
+                        # Widget was explicitly set, just add CSS classes if not present
+                        if 'class' not in field.widget.attrs:
+                            field.widget.attrs['class'] = css_classes
         
         # Call parent_view's get_form if it exists
         if self.parent_view and hasattr(self.parent_view, 'get_form'):
@@ -453,6 +427,7 @@ class CRUDView(View):
     search_fields = []
     property_field_map = {}
     inline_formsets = []
+    field_widgets = {}  # View-level widget configuration: {'FieldType': ('WidgetClass', 'css classes', {attrs})}
     view_type = None
     url_namespace = None
     path_converter = 'int'  # 'int', 'uuid', 'slug', etc.
