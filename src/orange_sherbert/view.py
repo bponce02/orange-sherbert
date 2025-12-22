@@ -180,22 +180,28 @@ class _CRUDMixin:
         
         form = super().get_form(form_class)
         
-        # Get global widget configuration (settings override defaults)
+        # Get global widget configuration (field-type-based)
         global_widgets = getattr(settings, 'ORANGE_SHERBERT_FIELD_WIDGETS', DEFAULT_FIELD_WIDGETS)
         
-        # Get view-level widget configuration
+        # Get view-level widget configuration (field-name-based)
         view_widgets = getattr(self.parent_view, 'field_widgets', {}) if self.parent_view else {}
         
-        # Merge configurations: view overrides global
-        field_widgets = {**global_widgets, **view_widgets}
-        
-        # Apply widget configuration based on field type
+        # Apply widget configuration
         for field_name, field in form.fields.items():
-            field_type = field.__class__.__name__
+            widget_config = None
             
-            # Check if we have a configuration for this field type
-            if field_type in field_widgets:
-                widget_class_name, css_classes, extra_attrs = field_widgets[field_type]
+            # Check for field-name-based override first (most specific)
+            if field_name in view_widgets:
+                widget_config = view_widgets[field_name]
+            else:
+                # Fall back to field-type-based global config
+                field_type = field.__class__.__name__
+                if field_type in global_widgets:
+                    widget_config = global_widgets[field_type]
+            
+            # Apply widget configuration if found
+            if widget_config:
+                widget_class_name, css_classes, extra_attrs = widget_config
                 
                 # Get the widget class from django.forms
                 widget_class = getattr(django_forms, widget_class_name, None)
@@ -427,7 +433,7 @@ class CRUDView(View):
     search_fields = []
     property_field_map = {}
     inline_formsets = []
-    field_widgets = {}  # View-level widget configuration: {'FieldType': ('WidgetClass', 'css classes', {attrs})}
+    field_widgets = {}  # View-level widget configuration: {'field_name': ('WidgetClass', 'css classes', {attrs})}
     view_type = None
     url_namespace = None
     path_converter = 'int'  # 'int', 'uuid', 'slug', etc.

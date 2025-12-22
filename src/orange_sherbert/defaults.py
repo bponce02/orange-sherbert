@@ -7,9 +7,9 @@ Projects can override these defaults in their settings.py with ORANGE_SHERBERT_F
 
 DEFAULT_FIELD_WIDGETS = {
     # Field Type: (Widget Class Name, CSS Classes, Extra Attributes)
-    'DateField': ('DateInput', 'input input-bordered w-full', {}),
-    'TimeField': ('TimeInput', 'input input-bordered w-full', {}),
-    'DateTimeField': ('DateTimeInput', 'input input-bordered w-full', {}),
+    'DateField': ('DateInput', 'input input-bordered w-full', {'type': 'date'}),
+    'TimeField': ('TimeInput', 'input input-bordered w-full', {'type': 'time'}),
+    'DateTimeField': ('DateTimeInput', 'input input-bordered w-full', {'type': 'datetime-local'}),
     'CharField': ('TextInput', 'input input-bordered w-full', {}),
     'EmailField': ('EmailInput', 'input input-bordered w-full', {}),
     'URLField': ('URLInput', 'input input-bordered w-full', {}),
