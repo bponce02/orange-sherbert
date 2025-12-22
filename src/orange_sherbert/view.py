@@ -177,6 +177,7 @@ class _CRUDMixin:
         from django import forms as django_forms
         from django.conf import settings
         from orange_sherbert.defaults import DEFAULT_FIELD_WIDGETS
+        from orange_sherbert import widgets as orange_widgets
         
         form = super().get_form(form_class)
         
@@ -203,13 +204,15 @@ class _CRUDMixin:
             if widget_config:
                 widget_class_name, css_classes, extra_attrs = widget_config
                 
-                # Get the widget class from django.forms
-                widget_class = getattr(django_forms, widget_class_name, None)
+                # Get the widget class - try orange_sherbert widgets first, then django.forms
+                widget_class = getattr(orange_widgets, widget_class_name, None)
+                if not widget_class:
+                    widget_class = getattr(django_forms, widget_class_name, None)
                 
                 if widget_class:
-                    # Build widget attributes
+                    # Build widget attributes (remove 'type' from attrs since it's set by widget class)
                     attrs = {'class': css_classes}
-                    attrs.update(extra_attrs)
+                    attrs.update({k: v for k, v in extra_attrs.items() if k != 'type'})
                     
                     # Only replace widget if it's still the default (TextInput for most fields)
                     # This preserves custom widgets defined in form classes
