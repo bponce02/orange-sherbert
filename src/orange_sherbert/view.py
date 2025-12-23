@@ -73,6 +73,7 @@ class _CRUDMixin:
                     prefix=name,
                 )
                 formset_instance.model_name = name
+                formset_instance.verbose_name = FormSetClass.model._meta.verbose_name_plural
                 for form in formset_instance.forms:
                     form.children = []
                     self._apply_widget_styling_to_form(form)
@@ -91,6 +92,7 @@ class _CRUDMixin:
                         parent_form=parent_form,
                     )
                     child_formset.model_name = name
+                    child_formset.verbose_name = FormSetClass.model._meta.verbose_name_plural
                     for form in child_formset.forms:
                         form.children = []
                         self._apply_widget_styling_to_form(form)
@@ -109,6 +111,7 @@ class _CRUDMixin:
                     instance=getattr(self, 'object', None),
                     prefix=name,
                 )
+                formset_instance.verbose_name = FormSetClass.model._meta.verbose_name_plural
                 for form in formset_instance.forms:
                     form.children = []
                     self._apply_widget_styling_to_form(form)
@@ -126,6 +129,7 @@ class _CRUDMixin:
                         prefix=f'{parent_name}-{i}-{name}',
                         parent_form=parent_form,
                     )
+                    child_formset.verbose_name = FormSetClass.model._meta.verbose_name_plural
                     for form in child_formset.forms:
                         form.children = []
                         self._apply_widget_styling_to_form(form)
