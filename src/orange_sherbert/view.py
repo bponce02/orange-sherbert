@@ -75,6 +75,7 @@ class _CRUDMixin:
                 formset_instance.model_name = name
                 for form in formset_instance.forms:
                     form.children = []
+                    self._apply_widget_styling_to_form(form)
                 self.formset_instances[name] = formset_instance
                 self.all_formsets_by_prefix[name] = formset_instance
         
@@ -92,6 +93,7 @@ class _CRUDMixin:
                     child_formset.model_name = name
                     for form in child_formset.forms:
                         form.children = []
+                        self._apply_widget_styling_to_form(form)
                     parent_form.children.append(child_formset)
                     self.all_formsets_by_prefix[prefix] = child_formset
 
@@ -109,6 +111,7 @@ class _CRUDMixin:
                 )
                 for form in formset_instance.forms:
                     form.children = []
+                    self._apply_widget_styling_to_form(form)
                 self.formset_instances[name] = formset_instance
         
         for name, FormSetClass in formsets.items():
@@ -125,6 +128,7 @@ class _CRUDMixin:
                     )
                     for form in child_formset.forms:
                         form.children = []
+                        self._apply_widget_styling_to_form(form)
                     parent_form.children.append(child_formset)
 
     def add_formset(self, formset_class_name, prefix, form_index):
@@ -136,6 +140,7 @@ class _CRUDMixin:
         
         empty_form.prefix = f'{prefix}-{form_index}'
         empty_form.children = []
+        self._apply_widget_styling_to_form(empty_form)
         
         for name, ChildFormSetClass in formsets.items():
             if ChildFormSetClass.parent_formset_name == formset_class_name:
@@ -173,13 +178,12 @@ class _CRUDMixin:
             kwargs.update(parent_kwargs)
         return kwargs
     
-    def get_form(self, form_class=None):
+    def _apply_widget_styling_to_form(self, form):
+        """Apply global and view-level widget styling to a form (including inline formset forms)"""
         from django import forms as django_forms
         from django.conf import settings
         from orange_sherbert.defaults import DEFAULT_FIELD_WIDGETS
         from orange_sherbert import widgets as orange_widgets
-        
-        form = super().get_form(form_class)
         
         # Get global widget configuration (field-type-based)
         global_widgets = getattr(settings, 'ORANGE_SHERBERT_FIELD_WIDGETS', DEFAULT_FIELD_WIDGETS)
@@ -238,6 +242,12 @@ class _CRUDMixin:
                         else:
                             # No existing classes, just add ours
                             field.widget.attrs['class'] = css_classes
+    
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        
+        # Apply widget styling to the main form
+        self._apply_widget_styling_to_form(form)
         
         # Call parent_view's get_form if it exists
         if self.parent_view and hasattr(self.parent_view, 'get_form'):
