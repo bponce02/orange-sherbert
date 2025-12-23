@@ -222,9 +222,9 @@ class _CRUDMixin:
                     # This preserves custom widgets defined in form classes
                     current_widget = field.widget.__class__.__name__
                     if current_widget in ('TextInput', 'Textarea', 'Select', 'SelectMultiple', 'NumberInput', 
-                                         'DateInput', 'TimeInput', 'DateTimeInput'):
-                        # For Select/SelectMultiple, preserve choices by copying existing widget's choices
-                        if current_widget in ('Select', 'SelectMultiple'):
+                                         'DateInput', 'TimeInput', 'DateTimeInput', 'CheckboxInput'):
+                        # For Select/SelectMultiple/CheckboxInput, preserve functionality by just updating attrs
+                        if current_widget in ('Select', 'SelectMultiple', 'CheckboxInput'):
                             # Just update the attrs on the existing widget instead of replacing it
                             field.widget.attrs.update(attrs)
                         else:
