@@ -217,6 +217,16 @@ class _CRUDMixin:
                 if not widget_class:
                     widget_class = getattr(django_forms, widget_class_name, None)
                 
+                # If still not found, try importing as a fully qualified path
+                if not widget_class and '.' in widget_class_name:
+                    try:
+                        from importlib import import_module
+                        module_path, class_name = widget_class_name.rsplit('.', 1)
+                        module = import_module(module_path)
+                        widget_class = getattr(module, class_name, None)
+                    except (ImportError, AttributeError, ValueError):
+                        pass
+                
                 if widget_class:
                     # Build widget attributes (remove 'type' from attrs since it's set by widget class)
                     attrs = {'class': css_classes}
