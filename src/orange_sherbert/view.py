@@ -235,7 +235,21 @@ class _CRUDMixin:
                     # Only replace widget if it's still the default
                     # This preserves custom widgets defined in form classes
                     current_widget = field.widget.__class__.__name__
-                    if current_widget in ('TextInput', 'Textarea', 'Select', 'SelectMultiple', 'NumberInput', 
+                    current_widget_class = field.widget.__class__
+                    
+                    # Check if current widget matches the configured widget class
+                    # If so, just merge CSS classes instead of replacing
+                    if current_widget_class == widget_class:
+                        # Same widget class - just merge CSS classes
+                        existing_classes = field.widget.attrs.get('class', '')
+                        if existing_classes:
+                            existing_set = set(existing_classes.split())
+                            new_set = set(css_classes.split())
+                            combined = existing_set | new_set
+                            field.widget.attrs['class'] = ' '.join(sorted(combined))
+                        else:
+                            field.widget.attrs['class'] = css_classes
+                    elif current_widget in ('TextInput', 'Textarea', 'Select', 'SelectMultiple', 'NumberInput', 
                                          'DateInput', 'TimeInput', 'DateTimeInput', 'CheckboxInput'):
                         # For Select/SelectMultiple/CheckboxInput, preserve functionality by just updating attrs
                         if current_widget in ('Select', 'SelectMultiple', 'CheckboxInput'):
