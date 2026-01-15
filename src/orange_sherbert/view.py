@@ -382,13 +382,27 @@ class _CRUDMixin:
     def get_success_url(self):
         model_name = self.model._meta.model_name
         url_name = f'{self.url_namespace}:{model_name}-list' if self.url_namespace else f'{model_name}-list'
-        return reverse(url_name)
+        base_url = reverse(url_name)
+        
+        # Preserve query parameters from the session if they exist
+        query_params = self.request.session.get('list_query_params', '')
+        if query_params:
+            return f'{base_url}?{query_params}'
+        return base_url
 
     def get(self, request, *args, **kwargs):
         if self.view_type == 'create':
             self.object = None
         elif self.view_type == 'update':
             self.object = self.get_object()
+        
+        # Store query parameters from referrer for create/update/delete views
+        if self.view_type in ('create', 'update', 'delete'):
+            referer = request.META.get('HTTP_REFERER', '')
+            if referer and '?' in referer:
+                query_string = referer.split('?', 1)[1]
+                request.session['list_query_params'] = query_string
+        
         if self.inline_formsets:
             self.init_formsets()
         return super().get(request, *args, **kwargs)

@@ -9,7 +9,7 @@
         <div class="card-body">
             <h1 class="card-title">{{ verbose_name_plural }}</h1>
             <div class="card-actions justify-end">
-                <a href="{% url url_namespace|add:model_name|add:'-create' %}" class="btn btn-primary">Create New</a>
+                <a href="{% url url_namespace|add:model_name|add:'-create' %}?{{ request.GET.urlencode }}" class="btn btn-primary">Create New</a>
             </div>
             
             <!-- Search Box -->
@@ -105,9 +105,9 @@
                                     <td>{{ value }}</td>
                                 {% endfor %}
                                 <td class="min-w-40 max-w-40">
-                                    <a href="{% url url_namespace|add:model_name|add:'-detail' item.object.pk %}" class="btn btn-sm btn-ghost">View</a>
-                                    <a href="{% url url_namespace|add:model_name|add:'-update' item.object.pk %}" class="btn btn-sm btn-ghost">Edit</a>
-                                    <a href="{% url url_namespace|add:model_name|add:'-delete' item.object.pk %}" class="btn btn-sm btn-ghost">Delete</a>
+                                    <a href="{% url url_namespace|add:model_name|add:'-detail' item.object.pk %}?{{ request.GET.urlencode }}" class="btn btn-sm btn-ghost">View</a>
+                                    <a href="{% url url_namespace|add:model_name|add:'-update' item.object.pk %}?{{ request.GET.urlencode }}" class="btn btn-sm btn-ghost">Edit</a>
+                                    <a href="{% url url_namespace|add:model_name|add:'-delete' item.object.pk %}?{{ request.GET.urlencode }}" class="btn btn-sm btn-ghost">Delete</a>
                                     {% for action in extra_actions %}
                                         {% if action.method == 'GET' %}
                                             <a href="{% url url_namespace|add:model_name|add:'-'|add:action.name item.object.pk %}" class="btn btn-sm btn-primary">{{ action.label }}</a>
