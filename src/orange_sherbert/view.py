@@ -369,6 +369,53 @@ class _CRUDMixin:
                 value = getattr(obj, field_name, '')
                 detail_fields.append((field_name, verbose_name, value))
             context['detail_fields'] = detail_fields
+            
+            # Add related items from inline formsets for detail view
+            if self.inline_formsets:
+                related_items = []
+                for config in self.inline_formsets:
+                    # Only show top-level formsets (not nested ones)
+                    if not config.get('nested_under'):
+                        model = config['model']
+                        prefix = config.get('prefix', model._meta.model_name)
+                        
+                        # Get the foreign key field that relates to the parent model
+                        fk_field = None
+                        for field in model._meta.fields:
+                            if field.related_model == self.model:
+                                fk_field = field.name
+                                break
+                        
+                        if fk_field:
+                            # Fetch related objects
+                            related_objs = model.objects.filter(**{fk_field: obj})
+                            
+                            # Get fields to display
+                            display_fields = config.get('fields', '__all__')
+                            if display_fields == '__all__':
+                                display_fields = [f.name for f in model._meta.fields if not f.primary_key and f.name != fk_field]
+                            
+                            # Build data structure for template
+                            items_data = []
+                            for related_obj in related_objs:
+                                item_fields = []
+                                for field_name in display_fields:
+                                    field = model._meta.get_field(field_name)
+                                    value = getattr(related_obj, field_name, '')
+                                    item_fields.append((field.verbose_name, value))
+                                items_data.append({
+                                    'object': related_obj,
+                                    'fields': item_fields,
+                                })
+                            
+                            related_items.append({
+                                'prefix': prefix,
+                                'verbose_name': model._meta.verbose_name,
+                                'verbose_name_plural': model._meta.verbose_name_plural,
+                                'items': items_data,
+                            })
+                
+                context['related_items'] = related_items
         
         if self.view_type in ('create', 'update') and self.inline_formsets:
             if not hasattr(self, 'formset_instances'):
