@@ -14,11 +14,15 @@ from django.forms.models import inlineformset_factory
 class NestedInlineFormSet(BaseInlineFormSet):
     parent_formset_name = None
     children = []
+    queryset_filter = None
     def __init__(self, *args, parent_form=None, **kwargs):
         self.parent_form = parent_form
+        # Apply queryset filter if defined and not already provided
+        if self.queryset_filter and 'queryset' not in kwargs:
+            kwargs['queryset'] = self.model.objects.filter(**self.queryset_filter)
         super().__init__(*args, **kwargs)
 
-def nestedinlineformset_factory(parent_model, model, parent_formset_name, **kwargs):
+def nestedinlineformset_factory(parent_model, model, parent_formset_name, queryset_filter=None, **kwargs):
     FormSet = inlineformset_factory(
         parent_model,
         model,
@@ -26,6 +30,7 @@ def nestedinlineformset_factory(parent_model, model, parent_formset_name, **kwar
         **kwargs
     )
     FormSet.parent_formset_name = parent_formset_name
+    FormSet.queryset_filter = queryset_filter
     return FormSet
 
 class _CRUDMixin:
@@ -54,6 +59,7 @@ class _CRUDMixin:
                     parent_model,
                     config['model'],
                     parent_formset_name=parent_name,
+                    queryset_filter=config.get('queryset_filter'),
                     fields=config.get('fields', '__all__'),
                     extra=config.get('extra', 1),
                     can_delete=config.get('can_delete', True),
@@ -387,8 +393,12 @@ class _CRUDMixin:
                                 break
                         
                         if fk_field:
-                            # Fetch related objects
-                            related_objs = model.objects.filter(**{fk_field: obj})
+                            # Fetch related objects with queryset filter if provided
+                            filter_kwargs = {fk_field: obj}
+                            queryset_filter = config.get('queryset_filter', {})
+                            if queryset_filter:
+                                filter_kwargs.update(queryset_filter)
+                            related_objs = model.objects.filter(**filter_kwargs)
                             
                             # Get fields to display
                             display_fields = config.get('fields', '__all__')
