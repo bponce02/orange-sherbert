@@ -45,7 +45,8 @@ class _CRUDMixin:
 
         if self.inline_formsets:
             for config in self.inline_formsets:
-                name = config['model']._meta.model_name
+                # Use custom prefix if provided, otherwise use model name
+                name = config.get('prefix', config['model']._meta.model_name)
                 parent_model = config.get('nested_under') or self.model
                 parent_name = config['nested_under']._meta.model_name if config.get('nested_under') else None
                 
