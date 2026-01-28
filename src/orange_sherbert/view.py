@@ -600,9 +600,11 @@ class CRUDView(View):
             self.fields = {f.name: f.verbose_name for f in self.model._meta.fields if not f.primary_key}
         
         if self.restricted_fields:
-            for field in self.restricted_fields:
-                if field in self.fields:
+            for field, required_permission in self.restricted_fields.items():
+                if field in self.fields and not request.user.has_perm(required_permission):
                     del self.fields[field]
+                if self.form_fields and field in self.form_fields and not request.user.has_perm(required_permission):
+                    del self.form_fields[field]
  
         if self.enforce_model_permissions and not request.user.has_perm(permission):
             return HttpResponseForbidden("You do not have permission to perform this action.")
