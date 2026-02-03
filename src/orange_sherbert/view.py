@@ -596,21 +596,27 @@ class CRUDView(View):
         model_name = self.model._meta.model_name
         permission = f'{app_label}.{action}_{model_name}'
         
+        # Create instance-level copies of fields to avoid mutating class-level attributes
         if self.fields == '__all__':
-            self.fields = {f.name: f.verbose_name for f in self.model._meta.fields if not f.primary_key}
+            instance_fields = {f.name: f.verbose_name for f in self.model._meta.fields if not f.primary_key}
+        else:
+            instance_fields = self.fields.copy() if isinstance(self.fields, dict) else self.fields
         
+        instance_form_fields = self.form_fields.copy() if isinstance(self.form_fields, dict) else self.form_fields
+        
+        # Filter out restricted fields based on user permissions
         if self.restricted_fields:
             for field, required_permission in self.restricted_fields.items():
-                if field in self.fields and not request.user.has_perm(required_permission):
-                    del self.fields[field]
-                if self.form_fields and field in self.form_fields and not request.user.has_perm(required_permission):
-                    del self.form_fields[field]
+                if field in instance_fields and not request.user.has_perm(required_permission):
+                    del instance_fields[field]
+                if instance_form_fields and field in instance_form_fields and not request.user.has_perm(required_permission):
+                    del instance_form_fields[field]
  
         if self.enforce_model_permissions and not request.user.has_perm(permission):
             return HttpResponseForbidden("You do not have permission to perform this action.")
         
         # For create/update views, replace properties with their underlying model fields
-        form_fields = self.form_fields if self.form_fields else self.fields
+        form_fields = instance_form_fields if instance_form_fields else instance_fields
         if view_type in ('create', 'update') and self.property_field_map:
             resolved_form_fields = {}
             for k, v in form_fields.items():
@@ -631,7 +637,7 @@ class CRUDView(View):
             'extra_actions': self.extra_actions,
             'property_field_map': self.property_field_map,
             'view_type': view_type,
-            'form_fields': self.form_fields,
+            'form_fields': instance_form_fields,
             'url_namespace': self.url_namespace,
             'inline_formsets': self.inline_formsets,
             'parent_view': self,
@@ -642,7 +648,7 @@ class CRUDView(View):
         if has_custom_form and view_type in ('create', 'update'):
             view_kwargs['form_class'] = self.form_class
         else:
-            view_kwargs['fields'] = form_fields if view_type in ('create', 'update', 'detail') else self.fields
+            view_kwargs['fields'] = form_fields if view_type in ('create', 'update', 'detail') else instance_fields
 
         if view_type == 'list':
             view_kwargs['template_name'] = self.list_template_name
